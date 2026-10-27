@@ -2,7 +2,8 @@
 
 Ruta de estudio completa para aprender trading desde cero, en una sola página.
 
-- 12 fases en orden (≈210 h de estudio + 12 semanas de práctica) con objetivos, temas, fuentes reales y ejercicios.
+- Formato de curso: barra lateral con módulos, panel de inicio, una pantalla por módulo y navegación anterior/siguiente.
+- 12 módulos en orden (≈210 h de estudio + 12 semanas de práctica) con objetivos, temas, fuentes reales y ejercicios.
 - Cómo funcionan las aplicaciones de trading: recorrido de una orden, libro de órdenes, tipos de plataformas y costos.
 - Calculadoras de tamaño de posición, expectativa y drawdown.
 - Plantilla de plan de trading, biblioteca y glosario.

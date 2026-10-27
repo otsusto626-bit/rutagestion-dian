@@ -12,114 +12,177 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: plano de ruta de estudio. Cabecera con gráfico de velas, mapa proporcional de fases, índice lateral fijo + columna de lectura. */
+/* Layout: aplicación de curso a pantalla completa. Barra lateral con módulos, barra superior con migas y avance, una vista por módulo con fuentes al lado. */
 :root{
-  --paper:#F5F7F6; --panel:#FFFFFF; --ink:#13201B; --muted:#56655E; --line:#D7DED9;
-  --accent:#2343A6; --accent-soft:#E6EBF8; --up:#12825A; --down:#BE3D2A; --warn:#9A6A08; --warn-soft:#FBF2DC;
+  --paper:#F4F6F5; --panel:#FFFFFF; --ink:#13201B; --muted:#56655E; --line:#D7DED9;
+  --accent:#2343A6; --accent-ink:#FFFFFF; --accent-soft:#E6EBF8; --up:#12825A; --up-soft:#E2F3EB; --down:#BE3D2A; --warn:#9A6A08; --warn-soft:#FBF2DC;
+  --shade:rgba(19,32,27,.45);
   --display:"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
   --body:"Source Serif 4", Georgia, "Times New Roman", serif;
   --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --side:296px;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#0F1513; --panel:#151D1A; --ink:#E4ECE8; --muted:#97A79F; --line:#26322D;
-  --accent:#93AAFF; --accent-soft:#1B2340; --up:#3CC58C; --down:#F0765F; --warn:#E3B54E; --warn-soft:#2A2312; color-scheme:dark } }
+  --accent:#93AAFF; --accent-ink:#0F1513; --accent-soft:#1B2340; --up:#3CC58C; --up-soft:#12281F; --down:#F0765F; --warn:#E3B54E; --warn-soft:#2A2312;
+  --shade:rgba(0,0,0,.6); color-scheme:dark } }
 :root[data-theme="dark"]{
   --paper:#0F1513; --panel:#151D1A; --ink:#E4ECE8; --muted:#97A79F; --line:#26322D;
-  --accent:#93AAFF; --accent-soft:#1B2340; --up:#3CC58C; --down:#F0765F; --warn:#E3B54E; --warn-soft:#2A2312; color-scheme:dark }
+  --accent:#93AAFF; --accent-ink:#0F1513; --accent-soft:#1B2340; --up:#3CC58C; --up-soft:#12281F; --down:#F0765F; --warn:#E3B54E; --warn-soft:#2A2312;
+  --shade:rgba(0,0,0,.6); color-scheme:dark }
 
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
-body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;
-  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 64px}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:30;background:var(--panel)}
 a{color:var(--accent);text-underline-offset:3px}
-a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
 h1,h2,h3,h4{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
 p{margin:0}
-.wrap{max-width:1180px;margin:0 auto}
-.label{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.label,.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.eyebrow{color:var(--accent)}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
 
-/* Hero */
-.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:end;padding-block:48px 32px;border-bottom:1px solid var(--line)}
-.hero h1{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.02em}
-.hero h1 span{color:var(--accent)}
-.lede{font-size:19px;max-width:58ch;margin-top:18px;color:var(--ink)}
-.facts{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:22px}
-.facts div{display:flex;flex-direction:column}
-.facts b{font-family:var(--display);font-size:24px}
-.chartbox{position:relative;min-width:0}
-.chartbox canvas{display:block;width:100%;height:240px}
-.ticker{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:6px}
+/* App shell */
+.app{display:grid;grid-template-columns:var(--side) minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel);border-right:1px solid var(--line);
+  padding-block:calc(env(safe-area-inset-top, 0px) + 20px) 20px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:16px;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand svg{flex:none}
+.brand b{font-family:var(--display);font-size:20px;letter-spacing:-.01em}
+.brand span{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.overall{display:grid;gap:6px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+.overall-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.overall b{font-family:var(--display);font-size:22px}
+.track{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.track i{display:block;height:100%;background:var(--up);width:0;transition:width .3s}
+.nav{display:grid;gap:14px}
+.nav h4{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px 8px}
+.nav ol{list-style:none;margin:0;padding:0;display:grid;gap:1px}
+.nav a{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-family:var(--display);font-size:15px;line-height:1.25}
+.nav a:hover{background:var(--accent-soft)}
+.nav a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+.nav a[aria-current="page"] .h{color:inherit;opacity:.8}
+.nav .h{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.st{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--panel)}
+.st.go{border-color:var(--accent);color:var(--accent)}
+.st.ok{border-color:var(--up);background:var(--up);color:var(--panel)}
+.nav a[aria-current="page"] .st{border-color:var(--accent-ink);color:var(--accent-ink);background:transparent}
+.nav a[aria-current="page"] .st.ok{background:var(--accent-ink);color:var(--accent)}
+.ico{width:24px;height:24px;display:grid;place-items:center;color:var(--muted)}
+.nav a[aria-current="page"] .ico{color:inherit}
+.side-foot{margin-top:auto;display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.save{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted);display:flex;align-items:center;gap:6px}
+.save::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--up);flex:none}
 
-/* Route map */
-.map{padding-block:28px;border-bottom:1px solid var(--line)}
-.map-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:14px}
-.map-head h2{font-size:22px}
-.bar{display:flex;height:46px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
-.bar a{display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--ink);font-family:var(--mono);font-size:12px;border-right:1px solid var(--line);min-width:0;position:relative}
-.bar a:last-child{border-right:0}
-.bar a:hover{background:var(--accent-soft)}
-.bar a.done{background:var(--accent);color:var(--paper)}
-.bar-legend{display:flex;justify-content:space-between;margin-top:8px}
-.progress{display:flex;align-items:center;gap:10px}
-.progress .track{width:140px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
-.progress .fill{height:100%;background:var(--up);width:0}
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:env(safe-area-inset-top, 0px);z-index:10;display:flex;align-items:center;gap:14px;min-height:56px;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:8px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+@media (min-width:1025px){ .topbar{padding-left:32px;padding-right:max(32px, env(safe-area-inset-right, 0px))} }
+.topbar .menu-btn{display:none}
+.crumbs{display:flex;align-items:center;gap:8px;min-width:0;font-family:var(--display);font-size:15px;color:var(--muted)}
+.crumbs b{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs .sep{opacity:.5}
+.crumbs .grp{white-space:nowrap}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.mini{display:flex;align-items:center;gap:8px}
+.mini .track{width:110px}
+.content{width:100%;max-width:1480px;padding-block:32px 72px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+@media (min-width:1025px){ .content{padding-left:40px;padding-right:max(40px, env(safe-area-inset-right, 0px))} }
+.view{display:grid;grid-template-columns:minmax(0,1fr);gap:28px}
+.view > *{min-width:0}
+.shade{position:fixed;inset:0;background:var(--shade);z-index:40}
 
-/* Main layout */
-.layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px;padding-top:36px}
-.toc{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-family:var(--display);font-size:15px}
-.toc ol{list-style:none;margin:8px 0 22px;padding:0;display:grid;gap:2px}
-.toc a{display:flex;gap:10px;color:var(--ink);text-decoration:none;padding:5px 8px;border-radius:4px}
-.toc a:hover{background:var(--accent-soft)}
-.toc a .n{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px;min-width:20px}
-.toc a.done .n{color:var(--up)}
-main{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:64px}
-main > *,#phases > *{min-width:0}
-section > h2{font-size:clamp(28px,4vw,38px);margin-bottom:10px}
-section > .intro{max-width:66ch;color:var(--ink)}
-
-/* Phases */
-.phase{border-top:2px solid var(--ink);padding-top:18px;display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
-.phase-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:start}
-.phase-no{font-family:var(--mono);font-size:44px;line-height:1;color:var(--accent);font-weight:500}
-.phase-head h3{font-size:clamp(23px,3vw,30px)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{font-family:var(--mono);font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:var(--panel)}
-.chip.key{border-color:var(--down);color:var(--down)}
-.check{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:14px;cursor:pointer;white-space:nowrap;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
-.check input{width:18px;height:18px;accent-color:var(--up)}
-.goal{font-size:18px;max-width:66ch}
-.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:28px}
-.topics h4,.res h4{font-size:15px;margin-bottom:8px;font-family:var(--mono);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.topics ul{margin:0;padding-left:18px;display:grid;gap:4px}
-.res ul{list-style:none;margin:0;padding:0;display:grid;gap:0;border-top:1px solid var(--line)}
-.res li{display:grid;grid-template-columns:104px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.res li.got > div{opacity:.6}
-.rc{display:flex;align-items:flex-start;gap:8px;cursor:pointer}
-.rc input{width:17px;height:17px;margin:3px 0 0;accent-color:var(--up);flex:none}
-.notes{display:grid;gap:6px}
-textarea{font-family:var(--body);font-size:16px;line-height:1.5;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:100%;min-height:76px;resize:vertical}
-.savebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:12px}
-.savebar .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--up);margin-right:6px}
-.btn{font-family:var(--display);font-size:14px;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer;text-decoration:none}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--display);font-size:15px;font-weight:600;padding:9px 16px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);cursor:pointer;text-decoration:none;line-height:1.2}
 .btn:hover{background:var(--accent-soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.btn.done{background:var(--up-soft);border-color:var(--up);color:var(--up)}
+.btn.small{font-size:13px;padding:6px 10px;font-weight:500}
 .btn.danger{border-color:var(--down);color:var(--down)}
-.plan textarea{margin-top:6px;min-height:56px}
-.tag{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding-top:4px}
-.tag.Leer{color:var(--accent)} .tag.Ver{color:var(--down)} .tag.Practicar{color:var(--up)} .tag.Libro{color:var(--warn)} .tag.Estudio{color:var(--muted)}
-.res a{font-weight:600}
-.res .meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:6px}
-.res p{font-size:15px;color:var(--muted);margin-top:2px}
-.task{background:var(--accent-soft);border-radius:6px;padding:14px 16px;display:grid;gap:4px}
-.task p{font-size:16px}
 
-/* Apps section */
-.steps{counter-reset:s;list-style:none;padding:0;margin:20px 0 0;display:grid;gap:0}
+/* Dashboard */
+.welcome{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:40px;align-items:center;padding-bottom:8px}
+.welcome h1{font-size:clamp(34px,4.4vw,58px);font-weight:700;letter-spacing:-.02em}
+.welcome h1 span{color:var(--accent)}
+.lede{font-size:18px;max-width:62ch;margin-top:14px}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.chartbox{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 14px 10px}
+.chartbox canvas{display:block;width:100%;height:220px}
+.ticker{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.stats div{padding:16px 18px;border-right:1px solid var(--line);display:grid;gap:2px}
+.stats div:last-child{border-right:0}
+.stats b{font-family:var(--display);font-size:28px;font-variant-numeric:tabular-nums}
+.group-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px}
+.group-head h2{font-size:22px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:14px}
+.card{display:grid;gap:10px;align-content:start;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);text-decoration:none;color:var(--ink);transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .no{font-family:var(--mono);font-size:13px;color:var(--accent)}
+.card h3{font-size:19px}
+.card p{font-size:14px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pill{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.go{border-color:var(--accent);color:var(--accent)}
+.pill.ok{border-color:var(--up);color:var(--up);background:var(--up-soft)}
+.pill.key{border-color:var(--down);color:var(--down)}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:14px}
+.tools .card h3{font-size:17px}
+
+/* Module view */
+.mod-head{display:grid;gap:12px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.mod-head h1{font-size:clamp(30px,3.6vw,46px);font-weight:700;letter-spacing:-.015em}
+.mod-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.chip{font-family:var(--mono);font-size:12px;padding:3px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:var(--panel)}
+.chip.key{border-color:var(--down);color:var(--down)}
+.mod-prog{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mod-prog .track{width:min(320px,100%);flex:1 1 160px;max-width:320px}
+.mod-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;align-items:start}
+.mod-grid > *{min-width:0}
+.col{display:grid;gap:20px}
+.block{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:grid;gap:10px}
+.block h2{font-size:15px;font-family:var(--mono);font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.goal{font-size:19px;line-height:1.5}
+.topics{margin:0;padding-left:20px;display:grid;gap:5px}
+.task{background:var(--accent-soft);border-color:transparent}
+.task h2{color:var(--accent)}
+textarea{font-family:var(--body);font-size:16px;line-height:1.5;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%;min-height:120px;resize:vertical}
+.res-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.filters button{font-family:var(--mono);font-size:12px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--muted);cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.res{list-style:none;margin:0;padding:0;display:grid}
+.res li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.res li:first-child{border-top:0}
+.res li.got .r-body{opacity:.6}
+.res input{width:18px;height:18px;margin:4px 0 0;accent-color:var(--up);cursor:pointer}
+.r-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.tag{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.tag.Leer{color:var(--accent)} .tag.Ver{color:var(--down)} .tag.Practicar{color:var(--up)} .tag.Libro{color:var(--warn)} .tag.Estudio{color:var(--muted)}
+.res a,.res b.t{font-family:var(--display);font-weight:600;font-size:16px}
+.res .meta{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.res p{font-size:15px;color:var(--muted);margin-top:3px}
+.pager{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;padding-top:20px;border-top:1px solid var(--line)}
+.pager a.pg{display:grid;gap:2px;text-decoration:none;color:var(--ink);padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.pager a.pg:hover{border-color:var(--accent)}
+.pager a.pg b{font-family:var(--display);font-size:16px}
+.pager .next{text-align:right}
+.pager .pg[hidden]{display:none}
+
+/* Tool views (shared components) */
+.tool-view{gap:18px}
+.tool-view > h3{margin-top:18px;font-size:22px}
+.tool-view h2.t{font-size:clamp(28px,3.4vw,42px)}
+.intro{max-width:70ch}
+.steps{counter-reset:s;list-style:none;padding:0;margin:8px 0 0;display:grid}
 .steps li{counter-increment:s;display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .steps li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);color:var(--accent);font-size:15px;padding-top:2px}
 .steps b{font-family:var(--display)}
-.scroll{overflow-x:auto;margin-top:20px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .flow{display:block;min-width:900px;width:100%;height:auto}
 .flow .box{fill:var(--panel);stroke:var(--ink);stroke-width:1.2}
 .flow .box.alt{fill:var(--accent-soft);stroke:var(--accent)}
@@ -132,138 +195,141 @@ th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px sol
 th{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
 td:first-child{font-family:var(--display);font-weight:600}
 .wide{min-width:820px}
-.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:24px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+.two > *{min-width:0}
 .two h3{font-size:20px;margin-bottom:8px}
 .two ul{margin:0;padding-left:18px;display:grid;gap:6px}
-
-/* Order book */
 .book{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;width:100%;max-width:420px}
 .book td{padding:4px 8px;border:0;position:relative;font-family:var(--mono);font-weight:400}
 .book .ask td:first-child{color:var(--down)} .book .bid td:first-child{color:var(--up)}
 .book .depth{position:absolute;right:0;top:3px;bottom:3px;opacity:.18;border-radius:2px}
 .book .ask .depth{background:var(--down)} .book .bid .depth{background:var(--up)}
 .book .spread td{color:var(--muted);text-align:center;border-block:1px dashed var(--line);font-size:12px}
-
-/* Tools */
-.tool{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-top:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px}
+.tool{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+.tool > *{min-width:0}
 .tool h3{font-size:20px;grid-column:1/-1}
 .fields{display:grid;gap:12px}
 .fields label{display:grid;gap:4px;font-family:var(--display);font-size:14px}
 .fields input{font-family:var(--mono);font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink);width:100%}
 .out{display:grid;gap:10px;align-content:start}
 .out div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:6px}
-.out b{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums}
+.out b{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums;text-align:right}
 .out .big b{font-size:26px;color:var(--accent)}
 .out .pos b{color:var(--up)} .out .neg b{color:var(--down)}
 .note{font-size:14px;color:var(--muted);grid-column:1/-1}
 .dd td{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .dd td:first-child{font-family:var(--mono);font-weight:400}
 .bad{color:var(--down)}
-
-/* Warning, books, glossary */
-.warnbox{background:var(--warn-soft);border-left:3px solid var(--warn);padding:16px 18px;border-radius:0 6px 6px 0;display:grid;gap:8px}
+.warnbox{background:var(--warn-soft);border-left:3px solid var(--warn);padding:16px 18px;border-radius:0 8px 8px 0;display:grid;gap:8px}
 .warnbox b{font-family:var(--display)}
-.books{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 28px;margin-top:20px}
+.books{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 28px}
 .books div{padding:12px 0;border-bottom:1px solid var(--line)}
 .books b{font-family:var(--display);display:block}
 .books span{font-size:14px;color:var(--muted)}
-.plan{margin:16px 0 0;padding-left:22px;display:grid;gap:16px}
-#q{font-family:var(--mono);font-size:15px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink);width:100%;max-width:360px;margin-top:14px}
-.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 28px;margin:16px 0 0}
+.plan{margin:0;padding-left:22px;display:grid;gap:16px;max-width:900px}
+.plan textarea{margin-top:6px;min-height:60px}
+#q{font-family:var(--mono);font-size:15px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:100%;max-width:360px;margin-top:6px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 28px;margin:0}
 .gloss div{padding:10px 0;border-bottom:1px solid var(--line)}
 .gloss dt{font-family:var(--display);font-weight:600}
 .gloss dd{margin:0;font-size:15px;color:var(--muted)}
-footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-size:14px;color:var(--muted);display:grid;gap:8px}
+.foot{font-size:14px;color:var(--muted);display:grid;gap:8px;padding-top:20px;border-top:1px solid var(--line);margin-top:40px;max-width:90ch}
 
-@media (max-width:900px){
-  .hero{grid-template-columns:minmax(0,1fr);gap:20px;padding-top:32px}
-  .layout{grid-template-columns:minmax(0,1fr);gap:24px}
-  .toc{position:static;max-height:none}
-  .toc ol{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
-  .cols,.two,.tool{grid-template-columns:minmax(0,1fr)}
-  .phase-head{grid-template-columns:auto minmax(0,1fr)}
-  .phase-head .check{grid-column:1/-1;justify-self:start}
-  .bar a span{display:none}
+@media (max-width:1280px){ .mod-grid{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:1024px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;left:0;top:0;bottom:0;height:auto;width:min(320px,86vw);z-index:50;transform:translateX(-102%);transition:transform .22s ease;box-shadow:0 0 40px rgba(0,0,0,.2)}
+  .side.open{transform:none}
+  .topbar .menu-btn{display:inline-flex}
+  .welcome{grid-template-columns:minmax(0,1fr);gap:24px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats div:nth-child(2){border-right:0}
+  .stats div:nth-child(-n+2){border-bottom:1px solid var(--line)}
 }
-@media (max-width:480px){
+@media (max-width:720px){
   body{font-size:16px}
-  .phase-no{font-size:34px}
-  .res li{grid-template-columns:minmax(0,1fr);gap:4px}
-  .bar{height:34px}
-  .bar a{flex:1 1 0 !important;font-size:10px}
-  .phase-head{gap:12px}
-  .tool{padding:16px}
-  .out b{font-size:16px}
+  .two,.tool{grid-template-columns:minmax(0,1fr)}
+  .crumbs .grp,.crumbs .sep{display:none}
+  .mini .track{width:60px}
+  .pager{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .pager .mid{grid-column:1/-1;order:-1}
+  .content{padding-top:22px}
+  .goal{font-size:17px}
+  .stats b{font-size:22px}
   .out .big b{font-size:22px}
-  .facts b{font-size:20px}
-  .lede{font-size:17px}
+  .tool{padding:16px}
 }
+@media (max-width:420px){ .mini .label{display:none} }
 </style>
 
-<div class="wrap">
-  <header class="hero">
-    <div>
-      <p class="label">Ruta de estudio · de cero a operar con método</p>
-      <h1>Ruta <span>Trader</span></h1>
-      <p class="lede">Un plan completo, en orden, para aprender trading de verdad: cómo funciona un mercado por dentro, qué hacen las aplicaciones cuando tocas «Comprar», análisis técnico y fundamental, gestión del riesgo, psicología, backtesting y práctica. Cada fase trae fuentes reales: cursos, libros, estudios académicos, documentación oficial y videos.</p>
-      <div class="facts">
-        <div><b class="num" id="f-hours">≈210 h</b><span class="label">de estudio</span></div>
-        <div><b class="num">12</b><span class="label">fases</span></div>
-        <div><b class="num">7–9</b><span class="label">meses a 8–10 h/sem</span></div>
+<div class="app">
+  <aside class="side" id="side" aria-label="Navegación del curso">
+    <a class="brand" href="#inicio">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="1" width="28" height="28" rx="7" fill="var(--accent)"/><path d="M9 8v14M15 6v18M21 10v10" stroke="var(--accent-ink)" stroke-width="1.6"/><rect x="7" y="11" width="4" height="7" fill="var(--accent-ink)"/><rect x="13" y="9" width="4" height="9" fill="var(--accent-ink)"/><rect x="19" y="12" width="4" height="6" fill="var(--accent-ink)"/></svg>
+      <div><b>Ruta Trader</b><span>Curso de trading</span></div>
+    </a>
+    <div class="overall">
+      <div class="overall-top"><b class="num" id="ov-pct">0%</b><span class="label" id="ov-txt">0 de 12 módulos</span></div>
+      <div class="track"><i id="ov-bar"></i></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <span class="save" id="save" role="status">Tu avance se guarda automáticamente</span>
+      <button class="btn small" id="reset" type="button">Reiniciar progreso</button>
+      <div id="confirm" hidden style="display:grid;gap:6px"><span class="label">¿Borrar todo tu avance y notas?</span><div style="display:flex;gap:6px"><button class="btn small danger" id="reset-yes" type="button">Sí, borrar</button><button class="btn small" id="reset-no" type="button">Cancelar</button></div></div>
+    </div>
+  </aside>
+  <div class="shade" id="shade" hidden></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn small menu-btn" id="menu" type="button" aria-controls="side" aria-expanded="false">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6"/></svg>Módulos</button>
+      <div class="crumbs" id="crumbs"></div>
+      <div class="top-right">
+        <div class="mini"><span class="label" id="mini-txt">0/12</span><div class="track"><i id="mini-bar"></i></div></div>
       </div>
-    </div>
-    <div class="chartbox" aria-hidden="true">
-      <canvas id="candles"></canvas>
-      <div class="ticker"><span>RUTA · 1D</span><span id="tk">O 100.00 · H 0 · L 0 · C 0</span></div>
-    </div>
-  </header>
+    </header>
 
-  <section class="map" aria-label="Mapa de la ruta">
-    <div class="map-head">
-      <h2>Mapa de la ruta</h2>
-      <div class="progress"><span class="label">Tu avance</span><div class="track"><div class="fill" id="pfill"></div></div><span class="num" id="ptext">0 / 12</span></div>
-    </div>
-    <div class="bar" id="bar"></div>
-    <div class="savebar">
-      <span class="label" id="save" role="status"><span class="dot"></span>Tu avance se guarda automáticamente</span>
-      <a class="btn" id="cont" href="#f0" hidden>Continuar</a>
-      <button class="btn" id="reset" type="button">Reiniciar progreso</button>
-      <span id="confirm" hidden><span class="label" style="margin-right:8px">¿Borrar todo tu avance y notas?</span><button class="btn danger" id="reset-yes" type="button">Sí, borrar</button> <button class="btn" id="reset-no" type="button">Cancelar</button></span>
-    </div>
-    <div class="bar-legend"><span class="label">Fundamentos</span><span class="label">Método</span><span class="label">Práctica</span></div>
-  </section>
-
-  <div class="layout">
-    <nav class="toc" aria-label="Índice">
-      <span class="label">Fases</span>
-      <ol id="toc"></ol>
-      <span class="label">Herramientas</span>
-      <ol>
-        <li><a href="#apps"><span class="n">A</span>Cómo funcionan las apps</a></li>
-        <li><a href="#riesgo"><span class="n">B</span>Calculadoras de riesgo</a></li>
-        <li><a href="#plan"><span class="n">C</span>Plantilla de plan</a></li>
-        <li><a href="#libros"><span class="n">D</span>Biblioteca</a></li>
-        <li><a href="#glosario"><span class="n">E</span>Glosario</a></li>
-      </ol>
-    </nav>
-
-    <main>
-      <section aria-labelledby="realidad">
+    <main class="content" id="content">
+      <section class="view" data-view="inicio" aria-label="Inicio">
+        <div class="welcome">
+          <div>
+            <p class="eyebrow">Ruta de estudio · de cero a operar con método</p>
+            <h1 style="margin-top:10px">Ruta <span>Trader</span></h1>
+            <p class="lede">Un curso completo y en orden para aprender trading de verdad: cómo funciona un mercado por dentro, qué hacen las aplicaciones cuando tocas «Comprar», análisis técnico y fundamental, gestión del riesgo, psicología, backtesting y práctica. Cada módulo trae fuentes reales: cursos, libros, estudios académicos, documentación oficial y videos.</p>
+            <div class="cta"><a class="btn primary" id="cta-go" href="#f0">Empezar el curso</a><a class="btn" href="#apps">Cómo funcionan las apps</a></div>
+          </div>
+          <div class="chartbox" aria-hidden="true">
+            <canvas id="candles"></canvas>
+            <div class="ticker"><span>RUTA · 1D</span><span id="tk"></span></div>
+          </div>
+        </div>
+        <div class="stats">
+          <div><span class="label">Módulos completados</span><b id="s-mod">0/12</b></div>
+          <div><span class="label">Fuentes revisadas</span><b id="s-res">0</b></div>
+          <div><span class="label">Horas cubiertas</span><b id="s-hrs">0 h</b></div>
+          <div><span class="label">Duración estimada</span><b>7–9 meses</b></div>
+        </div>
         <div class="warnbox">
-          <b id="realidad">Lee esto antes de empezar</b>
-          <p>La mayoría de quienes hacen trading de corto plazo pierden dinero. En un estudio de todos los day traders de futuros del mini-índice en Brasil, el 97% de quienes persistieron más de 300 días perdió dinero (Chague, De-Losso y Giovannetti, 2019). En la Unión Europea, los brokers de CFD deben publicar qué porcentaje de cuentas minoristas pierde; las cifras suelen estar entre el 70% y el 85%. Esta ruta no promete ganancias: te enseña a entender el mercado, medir tu ventaja (si la tienes) y proteger tu capital.</p>
-          <p>Nada de esta página es asesoría financiera. Practica primero en cuenta demo y usa solo dinero que puedas perder.</p>
+          <b>Lee esto antes de empezar</b>
+          <p>La mayoría de quienes hacen trading de corto plazo pierden dinero. En un estudio de todos los day traders de futuros del mini-índice en Brasil, el 97% de quienes persistieron más de 300 días perdió dinero (Chague, De-Losso y Giovannetti, 2019). En la Unión Europea, los brokers de CFD deben publicar qué porcentaje de cuentas minoristas pierde; las cifras suelen estar entre el 70% y el 85%. Este curso no promete ganancias: te enseña a entender el mercado, medir tu ventaja (si la tienes) y proteger tu capital. Nada de esto es asesoría financiera.</p>
+        </div>
+        <div id="groups" style="display:grid;gap:32px"></div>
+        <div>
+          <div class="group-head"><h2>Herramientas</h2><span class="label">Úsalas durante todo el curso</span></div>
+          <div class="tools" id="toolcards"></div>
         </div>
       </section>
 
-      <div id="phases" style="display:grid;grid-template-columns:minmax(0,1fr);gap:64px"></div>
+      <div id="modviews"></div>
 
-      <section id="apps" aria-labelledby="apps-h">
-        <p class="label">Herramienta A</p>
-        <h2 id="apps-h">Cómo funcionan las aplicaciones de trading</h2>
+<section class="view tool-view" data-view="apps" aria-labelledby="apps-h" hidden>
+        <p class="eyebrow">Herramientas</p>
+        <h2 class="t" id="apps-h">Cómo funcionan las aplicaciones de trading</h2>
         <p class="intro">Una app de trading es la ventana. Detrás hay un broker que verifica tu dinero, decide a dónde mandar tu orden y te cobra por algo. Entender esa cadena te dice qué precio estás recibiendo, quién está al otro lado y dónde están tus fondos.</p>
 
-        <h3 style="font-size:22px;margin-top:28px">Qué pasa cuando tocas «Comprar»</h3>
+        <h3 style="font-size:22px;">Qué pasa cuando tocas «Comprar»</h3>
         <div class="scroll" role="img" aria-label="Diagrama del recorrido de una orden desde la app hasta la custodia">
           <svg class="flow" viewBox="0 0 1040 250">
             <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
@@ -296,8 +362,8 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
           <li><div><b>Custodia y reportes.</b> El broker guarda tus activos, calcula tu saldo en tiempo real, cobra financiamiento si usaste margen, abona dividendos y genera los extractos que necesitarás para impuestos.</div></li>
         </ol>
 
-        <h3 style="font-size:22px;margin-top:36px">El libro de órdenes, la pieza central</h3>
-        <div class="two" style="margin-top:12px">
+        <h3 style="font-size:22px;">El libro de órdenes, la pieza central</h3>
+        <div class="two">
           <div>
             <table class="book" aria-label="Ejemplo de libro de órdenes">
               <tbody>
@@ -313,11 +379,11 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
           </div>
           <div>
             <p>Arriba están las <b>ofertas de venta (ask)</b> y abajo las <b>ofertas de compra (bid)</b>, con la cantidad disponible en cada precio. Si compras 500 acciones «a mercado», te llenas 300 a 100.02 y 200 a 100.04: tu precio promedio es peor que el que mostraba la pantalla. Por eso en activos con poca liquidez se usan órdenes límite.</p>
-            <p style="margin-top:10px">La diferencia entre el mejor ask y el mejor bid es el <b>spread</b>: un costo que pagas siempre, aunque la app diga «cero comisiones».</p>
+            <p>La diferencia entre el mejor ask y el mejor bid es el <b>spread</b>: un costo que pagas siempre, aunque la app diga «cero comisiones».</p>
           </div>
         </div>
 
-        <h3 style="font-size:22px;margin-top:36px">Tipos de plataformas</h3>
+        <h3 style="font-size:22px;">Tipos de plataformas</h3>
         <div class="scroll">
           <table class="wide">
             <thead><tr><th>Tipo</th><th>Ejemplos</th><th>Cómo ejecuta</th><th>Cómo gana dinero</th><th>Qué vigilar</th></tr></thead>
@@ -359,9 +425,9 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
         </div>
       </section>
 
-      <section id="riesgo" aria-labelledby="riesgo-h">
-        <p class="label">Herramienta B</p>
-        <h2 id="riesgo-h">Calculadoras de riesgo</h2>
+<section class="view tool-view" data-view="riesgo" aria-labelledby="riesgo-h" hidden>
+        <p class="eyebrow">Herramientas</p>
+        <h2 class="t" id="riesgo-h">Calculadoras de riesgo</h2>
         <p class="intro">Úsalas en la Fase 6 y antes de cada operación. Los valores iniciales son un ejemplo.</p>
 
         <form class="tool" id="ps" onsubmit="return false">
@@ -401,39 +467,39 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
           <p class="note">R es lo que arriesgas en una operación. Expectativa = acierto × ganancia − (1 − acierto) × pérdida. Antes de restar costos. Un sistema puede ganar con 35% de acierto si sus ganancias son grandes, y perder con 70% si sus pérdidas lo son.</p>
         </form>
 
-        <h3 style="font-size:20px;margin-top:28px">La matemática del drawdown</h3>
-        <p class="intro" style="margin-top:6px">Cuánto cae la cuenta tras una racha de pérdidas seguidas según el riesgo por operación, y cuánto necesitas ganar para volver al inicio.</p>
+        <h3 style="font-size:20px;">La matemática del drawdown</h3>
+        <p class="intro">Cuánto cae la cuenta tras una racha de pérdidas seguidas según el riesgo por operación, y cuánto necesitas ganar para volver al inicio.</p>
         <div class="scroll"><table class="dd" id="dd"></table></div>
       </section>
 
-      <section id="plan" aria-labelledby="plan-h">
-        <p class="label">Herramienta C</p>
-        <h2 id="plan-h">Plantilla de plan de trading</h2>
+<section class="view tool-view" data-view="plan" aria-labelledby="plan-h" hidden>
+        <p class="eyebrow">Herramientas</p>
+        <h2 class="t" id="plan-h">Plantilla de plan de trading</h2>
         <p class="intro">Escríbelo antes de la Fase 9 y no operes nada que no esté aquí. Si una regla no se puede verificar con un sí o un no, no es una regla. Lo que escribas aquí se guarda con tu avance.</p>
         <ol class="plan" id="planlist"></ol>
       </section>
 
-      <section id="libros" aria-labelledby="libros-h">
-        <p class="label">Herramienta D</p>
-        <h2 id="libros-h">Biblioteca esencial</h2>
+<section class="view tool-view" data-view="libros" aria-labelledby="libros-h" hidden>
+        <p class="eyebrow">Herramientas</p>
+        <h2 class="t" id="libros-h">Biblioteca esencial</h2>
         <p class="intro">Ordenados aproximadamente en el orden en que conviene leerlos. Entre paréntesis, el título en español cuando existe edición traducida.</p>
         <div class="books" id="books"></div>
       </section>
 
-      <section id="glosario" aria-labelledby="glosario-h">
-        <p class="label">Herramienta E</p>
-        <h2 id="glosario-h">Glosario</h2>
-        <label for="q" class="label" style="display:block;margin-top:10px">Buscar término</label>
+<section class="view tool-view" data-view="glosario" aria-labelledby="glosario-h" hidden>
+        <p class="eyebrow">Herramientas</p>
+        <h2 class="t" id="glosario-h">Glosario</h2>
+        <label for="q" class="label" style="display:block;">Buscar término</label>
         <input id="q" type="search" placeholder="spread, margen, ATR…" autocomplete="off">
         <dl class="gloss" id="gloss"></dl>
       </section>
+
+      <footer class="foot">
+        <p>Ruta Trader es material educativo. No es asesoría financiera, tributaria ni legal. Los mercados implican riesgo de pérdida total del capital, y mayor aún con apalancamiento. Verifica siempre que tu broker esté regulado y consulta a un contador para tu situación tributaria.</p>
+        <p>Los enlaces llevan a sitios de terceros. Los marcados «búsqueda» abren una búsqueda en YouTube o Google Scholar con el canal o el artículo citado.</p>
+      </footer>
     </main>
   </div>
-
-  <footer>
-    <p>Ruta Trader es material educativo. No es asesoría financiera, tributaria ni legal. Los mercados implican riesgo de pérdida total del capital, y mayor aún con apalancamiento. Verifica siempre que tu broker esté regulado y consulta a un contador para tu situación tributaria.</p>
-    <p>Los enlaces llevan a sitios de terceros. Los marcados «búsqueda» abren una búsqueda en YouTube o Google Scholar con el canal o el artículo citado, para que encuentres la versión más reciente.</p>
-  </footer>
 </div>
 
 <script>
@@ -670,11 +736,27 @@ const PLAN = [
  ["Registro","Qué anotas en el diario de cada operación (captura, motivo, emoción, resultado en R, error)."],
  ["Revisión","Cada domingo; cada 50 operaciones calculas expectativa y decides si continúas."]
 ];
+
+const GROUPS = [
+ {name:"Fundamentos", desc:"Qué es un mercado y qué se opera", ids:["f0","f1","f2","f3"]},
+ {name:"Análisis y método", desc:"Leer el mercado, controlar el riesgo y probar ideas", ids:["f4","f5","f6","f7","f8"]},
+ {name:"Práctica y profesionalización", desc:"Operar con datos, legalidad y automatización", ids:["f9","f10","f11"]}
+];
+const TOOLS = [
+ {id:"apps", name:"Cómo funcionan las apps", d:"El recorrido de una orden, el libro de órdenes y cómo gana dinero cada plataforma.", ico:"M3 12h4l3-8 4 16 3-8h4"},
+ {id:"riesgo", name:"Calculadoras de riesgo", d:"Tamaño de posición, expectativa de un sistema y matemática del drawdown.", ico:"M5 3h14v18H5zM8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2"},
+ {id:"plan", name:"Mi plan de trading", d:"Plantilla de 10 reglas que se guarda con tu avance.", ico:"M6 3h9l4 4v14H6zM9 12h7M9 16h7M9 8h3"},
+ {id:"libros", name:"Biblioteca", d:"Los 16 libros esenciales en orden de lectura.", ico:"M4 4h5v16H4zM10 4h4v16h-4zM15 5l4-1 2 15-4 1z"},
+ {id:"glosario", name:"Glosario", d:"Términos clave con buscador.", ico:"M4 5h16M4 10h16M4 15h10M4 20h6"}
+];
 const CALC_IDS = ["ps-cap","ps-risk","ps-entry","ps-stop","ps-tp","ex-wr","ex-win","ex-loss","ex-n"];
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const fmtDur = p => p.weeks ? p.weeks + " semanas" : p.hours + " h";
+const fmtDur = ph => ph.weeks ? ph.weeks + " semanas" : ph.hours + " h";
 const two = i => String(i).padStart(2,"0");
+const idx = id => PHASES.findIndex(ph => ph.id === id);
+const groupOf = id => GROUPS.find(g => g.ids.includes(id));
+const svgIco = d => `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="${d}"/></svg>`;
 
 // ---- saved state: browser storage right away, and the viewer's private db doc when available ----
 const KEY = "rutaTrader.state.v2";
@@ -693,7 +775,7 @@ S = readLocal() || S;
 const has = (k,id) => S[k].includes(id);
 function toggle(k,id,on){ const i = S[k].indexOf(id); if (on && i < 0) S[k].push(id); if (!on && i >= 0) S[k].splice(i,1); }
 function writeLocal(){ try { localStorage.setItem(KEY, JSON.stringify(S)); return true; } catch(e) { return false; } }
-function status(t){ $("save").innerHTML = '<span class="dot"></span>' + esc(t); }
+function status(t){ $("save").textContent = t; }
 
 let dbRef = null, timer = null, writing = false, again = false;
 function commit(){
@@ -736,50 +818,101 @@ async function connect(){
   } catch(e) { /* stays on browser storage */ }
 }
 
-// ---- render phases ----
-const host = $("phases");
-host.innerHTML = PHASES.map((p,i) => `
- <section class="phase" id="${p.id}" aria-labelledby="${p.id}-h">
-  <div class="phase-head">
-   <div class="phase-no">${two(i)}</div>
-   <div>
-    <h3 id="${p.id}-h">${esc(p.title)}</h3>
-    <div class="chips"><span class="chip num">${fmtDur(p)}</span><span class="chip${p.key?" key":""}">${esc(p.level)}</span><span class="chip num" id="cnt-${p.id}">0/${p.res.length} fuentes</span></div>
+// ---- module status ----
+const resDone = ph => ph.res.filter((_,j) => has("res", ph.id+"-"+j)).length;
+function stateOf(ph){
+  if (has("phases", ph.id)) return "ok";
+  if (resDone(ph) || (S.notes[ph.id]||"").trim()) return "go";
+  return "";
+}
+const stateLabel = {ok:"Completado", go:"En curso", "":"Sin iniciar"};
+
+// ---- sidebar ----
+function renderNav(){
+  const cur = currentView;
+  $("nav").innerHTML =
+    `<ol><li><a href="#inicio"${cur==="inicio"?' aria-current="page"':""}><span class="ico">${svgIco("M3 11l9-7 9 7v9h-6v-6H9v6H3z")}</span><span>Inicio</span><span></span></a></li></ol>` +
+    GROUPS.map(g => `<div><h4>${esc(g.name)}</h4><ol>${g.ids.map(id => { const ph = PHASES[idx(id)], st = stateOf(ph);
+      return `<li><a href="#${id}"${cur===id?' aria-current="page"':""}><span class="st ${st}">${st==="ok"?"✓":two(idx(id))}</span><span>${esc(ph.short)}</span><span class="h">${ph.weeks?ph.weeks+" sem":ph.hours+" h"}</span></a></li>`; }).join("")}</ol></div>`).join("") +
+    `<div><h4>Herramientas</h4><ol>${TOOLS.map(t => `<li><a href="#${t.id}"${cur===t.id?' aria-current="page"':""}><span class="ico">${svgIco(t.ico)}</span><span>${esc(t.name)}</span><span></span></a></li>`).join("")}</ol></div>`;
+}
+
+// ---- dashboard ----
+function renderDash(){
+  $("groups").innerHTML = GROUPS.map(g => `<div>
+    <div class="group-head"><h2>${esc(g.name)}</h2><span class="label">${esc(g.desc)}</span></div>
+    <div class="cards">${g.ids.map(id => { const i = idx(id), ph = PHASES[i], st = stateOf(ph), n = resDone(ph);
+      return `<a class="card" href="#${id}">
+        <div class="card-top"><span class="no">Módulo ${two(i)}</span><span class="pill ${st}">${stateLabel[st]}</span></div>
+        <h3>${esc(ph.title)}</h3>
+        <p>${esc(ph.goal)}</p>
+        <div class="track"><i style="width:${st==="ok"?100:Math.round(n/ph.res.length*100)}%"></i></div>
+        <div class="card-foot"><span>${fmtDur(ph)} · ${esc(ph.level)}</span><span>${n}/${ph.res.length} fuentes</span></div>
+      </a>`; }).join("")}</div></div>`).join("");
+  $("toolcards").innerHTML = TOOLS.map(t => `<a class="card" href="#${t.id}"><span class="ico" style="color:var(--accent)">${svgIco(t.ico)}</span><h3>${esc(t.name)}</h3><p>${esc(t.d)}</p></a>`).join("");
+}
+
+// ---- module views ----
+$("modviews").innerHTML = PHASES.map((ph,i) => { const g = groupOf(ph.id), prev = PHASES[i-1], next = PHASES[i+1]; return `
+ <section class="view" data-view="${ph.id}" aria-labelledby="${ph.id}-h" hidden>
+  <header class="mod-head">
+   <p class="eyebrow">Módulo ${two(i)} · ${esc(g.name)}</p>
+   <h1 id="${ph.id}-h">${esc(ph.title)}</h1>
+   <div class="mod-meta"><span class="chip num">${fmtDur(ph)}</span><span class="chip${ph.key?" key":""}">${esc(ph.level)}</span><span class="chip">${ph.topics.length} temas</span><span class="chip">${ph.res.length} fuentes</span></div>
+   <div class="mod-prog"><div class="track"><i id="mp-${ph.id}"></i></div><span class="label" id="mt-${ph.id}"></span><button class="btn small" type="button" data-complete="${ph.id}" id="cb-${ph.id}"></button></div>
+  </header>
+  <div class="mod-grid">
+   <div class="col">
+    <div class="block"><h2>Objetivo del módulo</h2><p class="goal">${esc(ph.goal)}</p></div>
+    <div class="block"><h2>Temas</h2><ul class="topics">${ph.topics.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>
+    <div class="block task"><h2>Ejercicio de control</h2><p>${esc(ph.task)}</p></div>
+    <div class="block"><h2><label for="n-${ph.id}">Mis notas y respuesta del ejercicio</label></h2><textarea id="n-${ph.id}" data-note="${ph.id}" placeholder="Escribe lo que aprendiste, tus dudas o la respuesta del ejercicio…"></textarea></div>
    </div>
-   <label class="check" for="chk-${p.id}"><input type="checkbox" id="chk-${p.id}" data-phase="${p.id}"> Completada</label>
+   <div class="col">
+    <div class="block">
+     <div class="res-head"><h2>Fuentes · marca las que termines</h2>
+      <div class="filters" data-filters="${ph.id}">${["Todas",...new Set(ph.res.map(r=>r.t))].map((t,k)=>`<button type="button" data-f="${t}" aria-pressed="${k===0}">${t}</button>`).join("")}</div></div>
+     <ul class="res">${ph.res.map((r,j)=>{ const k = ph.id+"-"+j; return `
+      <li id="li-${k}" data-type="${r.t}"><input type="checkbox" id="r-${k}" data-res="${k}" data-ph="${ph.id}" aria-label="Terminé: ${esc(r.n)}">
+       <div class="r-body"><div class="r-top"><span class="tag ${r.t}">${r.t}</span>${r.u?`<a href="${esc(r.u)}"${r.u[0]==="#"?"":' target="_blank" rel="noopener"'}>${esc(r.n)}</a>`:`<b class="t">${esc(r.n)}</b>`}</div>
+       <span class="meta">${esc(r.c)} · ${esc(r.l)}${r.s?" · búsqueda":""}</span><p>${esc(r.d)}</p></div></li>`; }).join("")}
+     </ul>
+    </div>
+   </div>
   </div>
-  <p class="goal">${esc(p.goal)}</p>
-  <div class="cols">
-   <div class="topics"><h4>Temas</h4><ul>${p.topics.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>
-   <div class="res"><h4>Fuentes · marca las que termines</h4><ul>${p.res.map((r,j)=>{ const k = p.id+"-"+j; return `
-    <li id="li-${k}"><label class="rc" for="r-${k}"><input type="checkbox" id="r-${k}" data-res="${k}" data-ph="${p.id}" aria-label="Terminé: ${esc(r.n)}"><span class="tag ${r.t}">${r.t}</span></label><div>${r.u?`<a href="${esc(r.u)}"${r.u[0]==="#"?"":' target="_blank" rel="noopener"'}>${esc(r.n)}</a>`:`<b>${esc(r.n)}</b>`}<span class="meta">${esc(r.c)} · ${esc(r.l)}${r.s?" · búsqueda":""}</span><p>${esc(r.d)}</p></div></li>`; }).join("")}
-   </ul></div>
-  </div>
-  <div class="task"><span class="label">Ejercicio de control</span><p>${esc(p.task)}</p></div>
-  <div class="notes"><label class="label" for="n-${p.id}">Mis notas y respuesta del ejercicio</label><textarea id="n-${p.id}" data-note="${p.id}" placeholder="Escribe aquí lo que aprendiste, dudas o la respuesta del ejercicio…"></textarea></div>
- </section>`).join("");
+  <nav class="pager" aria-label="Módulos">
+   <a class="pg prev" href="#${prev?prev.id:"inicio"}"><span class="label">← ${prev?"Anterior":"Volver"}</span><b>${prev?esc(prev.title):"Inicio del curso"}</b></a>
+   <span class="mid"></span>
+   <a class="pg next" href="#${next?next.id:"plan"}"><span class="label">${next?"Siguiente":"Final"} →</span><b>${next?esc(next.title):"Escribir mi plan de trading"}</b></a>
+  </nav>
+ </section>`; }).join("");
 
 $("planlist").innerHTML = PLAN.map((x,i)=>`<li><label for="plan-${i}"><b>${esc(x[0])}:</b> ${esc(x[1])}</label><textarea id="plan-${i}" data-plan="${i}" placeholder="Tu regla…"></textarea></li>`).join("");
 
-// ---- toc + bar ----
-const toc = $("toc"), bar = $("bar");
-const weight = p => p.weeks ? p.weeks * 8 : p.hours;
-const studyH = PHASES.filter(p=>!p.weeks && p.id!=="f11").reduce((a,p)=>a+p.hours,0);
-const totalRes = PHASES.reduce((a,p)=>a+p.res.length,0);
-$("f-hours").textContent = "≈" + studyH + " h";
+// ---- progress paint ----
+const totalRes = PHASES.reduce((a,ph)=>a+ph.res.length,0);
 function paint(){
-  const doneN = PHASES.filter(p=>has("phases",p.id)).length;
-  toc.innerHTML = PHASES.map((p,i)=>`<li><a href="#${p.id}" class="${has("phases",p.id)?"done":""}"><span class="n">${has("phases",p.id)?"✓":two(i)}</span>${esc(p.short)}</a></li>`).join("");
-  bar.innerHTML = PHASES.map((p,i)=>`<a href="#${p.id}" class="${has("phases",p.id)?"done":""}" style="flex:${weight(p)} 1 0" title="${esc(p.title)} · ${fmtDur(p)}">${two(i)}<span>&nbsp;${esc(p.short)}</span></a>`).join("");
-  $("pfill").style.width = (doneN/PHASES.length*100) + "%";
-  const resPct = Math.round(S.res.length/totalRes*100);
-  $("ptext").textContent = doneN + "/" + PHASES.length + " fases · " + resPct + "% fuentes";
-  PHASES.forEach(p=>{ const n = p.res.filter((_,j)=>has("res",p.id+"-"+j)).length; $("cnt-"+p.id).textContent = n+"/"+p.res.length+" fuentes"; });
-  const li = PHASES.findIndex(p=>p.id===S.last), c = $("cont");
-  if (li >= 0) { c.hidden = false; c.href = "#" + S.last; c.textContent = "Continuar: Fase " + two(li) + " · " + PHASES[li].short; } else c.hidden = true;
+  const doneN = PHASES.filter(ph=>has("phases",ph.id)).length, pct = Math.round(doneN/PHASES.length*100);
+  const hrs = PHASES.filter(ph=>has("phases",ph.id)).reduce((a,ph)=>a+(ph.weeks?ph.weeks*8:ph.hours),0);
+  $("ov-pct").textContent = pct + "%"; $("ov-txt").textContent = doneN + " de " + PHASES.length + " módulos";
+  $("ov-bar").style.width = pct + "%"; $("mini-bar").style.width = pct + "%"; $("mini-txt").textContent = doneN + "/" + PHASES.length;
+  $("s-mod").textContent = doneN + "/" + PHASES.length; $("s-res").textContent = S.res.length + "/" + totalRes; $("s-hrs").textContent = hrs + " h";
+  PHASES.forEach(ph => {
+    const n = resDone(ph), ok = has("phases",ph.id);
+    $("mp-"+ph.id).style.width = (ok ? 100 : Math.round(n/ph.res.length*100)) + "%";
+    $("mt-"+ph.id).textContent = ok ? "Módulo completado" : n + " de " + ph.res.length + " fuentes";
+    const b = $("cb-"+ph.id); b.textContent = ok ? "✓ Completado" : "Marcar como completado"; b.className = "btn small" + (ok ? " done" : "");
+    b.setAttribute("aria-pressed", ok);
+  });
+  const li = idx(S.last), first = PHASES.find(ph=>!has("phases",ph.id));
+  const go = li >= 0 && !has("phases",S.last) ? PHASES[li] : first;
+  const c = $("cta-go");
+  if (!go) { c.href = "#plan"; c.textContent = "Curso completado · revisar mi plan"; }
+  else if (S.updatedAt) { c.href = "#" + go.id; c.textContent = "Continuar: Módulo " + two(idx(go.id)) + " · " + go.short; }
+  else { c.href = "#f0"; c.textContent = "Empezar el curso"; }
+  renderNav(); renderDash();
 }
 function applyState(){
-  document.querySelectorAll("[data-phase]").forEach(el=>el.checked = has("phases", el.dataset.phase));
   document.querySelectorAll("[data-res]").forEach(el=>{ el.checked = has("res", el.dataset.res); $("li-"+el.dataset.res).classList.toggle("got", el.checked); });
   document.querySelectorAll("[data-note]").forEach(el=>el.value = S.notes[el.dataset.note] || "");
   document.querySelectorAll("[data-plan]").forEach(el=>el.value = S.plan[el.dataset.plan] || "");
@@ -787,12 +920,52 @@ function applyState(){
   paint(); pos(); exp();
 }
 
+// ---- routing: one view at a time ----
+const VIEWS = ["inicio", ...PHASES.map(ph=>ph.id), ...TOOLS.map(t=>t.id)];
+let currentView = "inicio";
+function crumbs(v){
+  const home = `<a href="#inicio" class="grp" style="color:inherit;text-decoration:none">Ruta Trader</a><span class="sep">/</span>`;
+  if (v === "inicio") return `<b>Inicio</b>`;
+  const i = idx(v);
+  if (i >= 0) return home + `<span class="grp">${esc(groupOf(v).name)}</span><span class="sep">/</span><b>${two(i)} · ${esc(PHASES[i].short)}</b>`;
+  const t = TOOLS.find(t=>t.id===v);
+  return home + `<span class="grp">Herramientas</span><span class="sep">/</span><b>${esc(t.name)}</b>`;
+}
+function show(v){
+  currentView = v;
+  document.querySelectorAll(".view").forEach(el => el.hidden = el.dataset.view !== v);
+  $("crumbs").innerHTML = crumbs(v);
+  renderNav(); closeMenu();
+  window.scrollTo(0,0);
+  if (idx(v) >= 0 && S.last !== v) { S.last = v; commit(); paint(); }
+  if (v === "inicio") requestAnimationFrame(draw);
+}
+function route(){ const v = location.hash.slice(1); show(VIEWS.includes(v) ? v : "inicio"); }
+window.addEventListener("hashchange", route);
+
+// ---- mobile drawer ----
+function openMenu(){ $("side").classList.add("open"); $("shade").hidden = false; $("menu").setAttribute("aria-expanded","true"); }
+function closeMenu(){ $("side").classList.remove("open"); $("shade").hidden = true; $("menu").setAttribute("aria-expanded","false"); }
+$("menu").addEventListener("click", ()=> $("side").classList.contains("open") ? closeMenu() : openMenu());
+$("shade").addEventListener("click", closeMenu);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+
+// ---- interactions ----
 document.addEventListener("change", e => {
   const t = e.target, d = t.dataset || {};
-  if (d.phase) { toggle("phases", d.phase, t.checked); S.last = d.phase; }
-  else if (d.res) { toggle("res", d.res, t.checked); S.last = d.ph; $("li-"+d.res).classList.toggle("got", t.checked); }
-  else return;
+  if (!d.res) return;
+  toggle("res", d.res, t.checked); S.last = d.ph; $("li-"+d.res).classList.toggle("got", t.checked);
   paint(); commit();
+});
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-complete]");
+  if (b) { const id = b.dataset.complete; toggle("phases", id, !has("phases", id)); S.last = id; paint(); commit(); return; }
+  const f = e.target.closest("[data-f]");
+  if (f) {
+    const box = f.parentElement, ph = box.dataset.filters, want = f.dataset.f;
+    box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === f));
+    document.querySelectorAll(`[data-view="${ph}"] .res li`).forEach(li => li.hidden = want !== "Todas" && li.dataset.type !== want);
+  }
 });
 document.addEventListener("input", e => {
   const t = e.target, d = t.dataset || {};
@@ -844,12 +1017,7 @@ function exp(){
 }
 ["ps-cap","ps-risk","ps-entry","ps-stop","ps-tp"].forEach(id=>$(id).addEventListener("input",pos));
 ["ex-wr","ex-win","ex-loss","ex-n"].forEach(id=>$(id).addEventListener("input",exp));
-applyState();
-if (S.updatedAt) status("Avance recuperado de este navegador");
-connect();
 
-
-// drawdown table
 const risks=[0.5,1,2,5,10], streaks=[3,5,10,15,20];
 let h = "<thead><tr><th>Pérdidas seguidas</th>" + risks.map(r=>`<th>${nf(r,r<1?1:0)}% por operación</th>`).join("") + "</tr></thead><tbody>";
 streaks.forEach(s=>{
@@ -904,6 +1072,12 @@ window.addEventListener("resize", draw);
 try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw); } catch(e) {}
 new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+
+
+applyState();
+route();
+if (S.updatedAt) status("Avance recuperado de este navegador");
+connect();
 })();
 </script>
 
