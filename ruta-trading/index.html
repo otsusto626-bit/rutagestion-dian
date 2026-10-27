@@ -1,0 +1,782 @@
+<title>Ruta Trader</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: plano de ruta de estudio. Cabecera con gráfico de velas, mapa proporcional de fases, índice lateral fijo + columna de lectura. */
+:root{
+  --paper:#F5F7F6; --panel:#FFFFFF; --ink:#13201B; --muted:#56655E; --line:#D7DED9;
+  --accent:#2343A6; --accent-soft:#E6EBF8; --up:#12825A; --down:#BE3D2A; --warn:#9A6A08; --warn-soft:#FBF2DC;
+  --display:"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0F1513; --panel:#151D1A; --ink:#E4ECE8; --muted:#97A79F; --line:#26322D;
+  --accent:#93AAFF; --accent-soft:#1B2340; --up:#3CC58C; --down:#F0765F; --warn:#E3B54E; --warn-soft:#2A2312; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#0F1513; --panel:#151D1A; --ink:#E4ECE8; --muted:#97A79F; --line:#26322D;
+  --accent:#93AAFF; --accent-soft:#1B2340; --up:#3CC58C; --down:#F0765F; --warn:#E3B54E; --warn-soft:#2A2312; color-scheme:dark }
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 64px}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+p{margin:0}
+.wrap{max-width:1180px;margin:0 auto}
+.label{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:end;padding-block:48px 32px;border-bottom:1px solid var(--line)}
+.hero h1{font-size:clamp(40px,7vw,76px);font-weight:700;letter-spacing:-.02em}
+.hero h1 span{color:var(--accent)}
+.lede{font-size:19px;max-width:58ch;margin-top:18px;color:var(--ink)}
+.facts{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:22px}
+.facts div{display:flex;flex-direction:column}
+.facts b{font-family:var(--display);font-size:24px}
+.chartbox{position:relative;min-width:0}
+.chartbox canvas{display:block;width:100%;height:240px}
+.ticker{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:6px}
+
+/* Route map */
+.map{padding-block:28px;border-bottom:1px solid var(--line)}
+.map-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.map-head h2{font-size:22px}
+.bar{display:flex;height:46px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.bar a{display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--ink);font-family:var(--mono);font-size:12px;border-right:1px solid var(--line);min-width:0;position:relative}
+.bar a:last-child{border-right:0}
+.bar a:hover{background:var(--accent-soft)}
+.bar a.done{background:var(--accent);color:var(--paper)}
+.bar-legend{display:flex;justify-content:space-between;margin-top:8px}
+.progress{display:flex;align-items:center;gap:10px}
+.progress .track{width:140px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress .fill{height:100%;background:var(--up);width:0}
+
+/* Main layout */
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px;padding-top:36px}
+.toc{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-family:var(--display);font-size:15px}
+.toc ol{list-style:none;margin:8px 0 22px;padding:0;display:grid;gap:2px}
+.toc a{display:flex;gap:10px;color:var(--ink);text-decoration:none;padding:5px 8px;border-radius:4px}
+.toc a:hover{background:var(--accent-soft)}
+.toc a .n{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px;min-width:20px}
+.toc a.done .n{color:var(--up)}
+main{min-width:0;display:grid;gap:64px}
+section > h2{font-size:clamp(28px,4vw,38px);margin-bottom:10px}
+section > .intro{max-width:66ch;color:var(--ink)}
+
+/* Phases */
+.phase{border-top:2px solid var(--ink);padding-top:18px;display:grid;gap:18px}
+.phase-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:start}
+.phase-no{font-family:var(--mono);font-size:44px;line-height:1;color:var(--accent);font-weight:500}
+.phase-head h3{font-size:clamp(23px,3vw,30px)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-family:var(--mono);font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:var(--panel)}
+.chip.key{border-color:var(--down);color:var(--down)}
+.check{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:14px;cursor:pointer;white-space:nowrap;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.check input{width:18px;height:18px;accent-color:var(--up)}
+.goal{font-size:18px;max-width:66ch}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:28px}
+.topics h4,.res h4{font-size:15px;margin-bottom:8px;font-family:var(--mono);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.topics ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.res ul{list-style:none;margin:0;padding:0;display:grid;gap:0;border-top:1px solid var(--line)}
+.res li{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.tag{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding-top:4px}
+.tag.Leer{color:var(--accent)} .tag.Ver{color:var(--down)} .tag.Practicar{color:var(--up)} .tag.Libro{color:var(--warn)} .tag.Estudio{color:var(--muted)}
+.res a{font-weight:600}
+.res .meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:6px}
+.res p{font-size:15px;color:var(--muted);margin-top:2px}
+.task{background:var(--accent-soft);border-radius:6px;padding:14px 16px;display:grid;gap:4px}
+.task p{font-size:16px}
+
+/* Apps section */
+.steps{counter-reset:s;list-style:none;padding:0;margin:20px 0 0;display:grid;gap:0}
+.steps li{counter-increment:s;display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.steps li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);color:var(--accent);font-size:15px;padding-top:2px}
+.steps b{font-family:var(--display)}
+.scroll{overflow-x:auto;margin-top:20px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.flow{display:block;min-width:900px;width:100%;height:auto}
+.flow .box{fill:var(--panel);stroke:var(--ink);stroke-width:1.2}
+.flow .box.alt{fill:var(--accent-soft);stroke:var(--accent)}
+.flow text{fill:var(--ink);font-family:var(--display);font-size:14px}
+.flow .sub{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.flow .arrow{stroke:var(--muted);stroke-width:1.4;fill:none}
+.flow .head{fill:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
+td:first-child{font-family:var(--display);font-weight:600}
+.wide{min-width:820px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:24px}
+.two h3{font-size:20px;margin-bottom:8px}
+.two ul{margin:0;padding-left:18px;display:grid;gap:6px}
+
+/* Order book */
+.book{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;width:100%;max-width:420px}
+.book td{padding:4px 8px;border:0;position:relative;font-family:var(--mono);font-weight:400}
+.book .ask td:first-child{color:var(--down)} .book .bid td:first-child{color:var(--up)}
+.book .depth{position:absolute;right:0;top:3px;bottom:3px;opacity:.18;border-radius:2px}
+.book .ask .depth{background:var(--down)} .book .bid .depth{background:var(--up)}
+.book .spread td{color:var(--muted);text-align:center;border-block:1px dashed var(--line);font-size:12px}
+
+/* Tools */
+.tool{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-top:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px}
+.tool h3{font-size:20px;grid-column:1/-1}
+.fields{display:grid;gap:12px}
+.fields label{display:grid;gap:4px;font-family:var(--display);font-size:14px}
+.fields input{font-family:var(--mono);font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink);width:100%}
+.out{display:grid;gap:10px;align-content:start}
+.out div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.out b{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums}
+.out .big b{font-size:26px;color:var(--accent)}
+.out .pos b{color:var(--up)} .out .neg b{color:var(--down)}
+.note{font-size:14px;color:var(--muted);grid-column:1/-1}
+.dd td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.dd td:first-child{font-family:var(--mono);font-weight:400}
+.bad{color:var(--down)}
+
+/* Warning, books, glossary */
+.warnbox{background:var(--warn-soft);border-left:3px solid var(--warn);padding:16px 18px;border-radius:0 6px 6px 0;display:grid;gap:8px}
+.warnbox b{font-family:var(--display)}
+.books{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 28px;margin-top:20px}
+.books div{padding:12px 0;border-bottom:1px solid var(--line)}
+.books b{font-family:var(--display);display:block}
+.books span{font-size:14px;color:var(--muted)}
+.plan{margin:16px 0 0;padding-left:22px;display:grid;gap:6px}
+#q{font-family:var(--mono);font-size:15px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink);width:100%;max-width:360px;margin-top:14px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 28px;margin:16px 0 0}
+.gloss div{padding:10px 0;border-bottom:1px solid var(--line)}
+.gloss dt{font-family:var(--display);font-weight:600}
+.gloss dd{margin:0;font-size:15px;color:var(--muted)}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-size:14px;color:var(--muted);display:grid;gap:8px}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;gap:20px;padding-top:32px}
+  .layout{grid-template-columns:1fr;gap:24px}
+  .toc{position:static;max-height:none}
+  .toc ol{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .cols,.two,.tool{grid-template-columns:1fr}
+  .phase-head{grid-template-columns:auto minmax(0,1fr)}
+  .phase-head .check{grid-column:1/-1;justify-self:start}
+  .bar a span{display:none}
+}
+@media (max-width:480px){
+  body{font-size:16px}
+  .phase-no{font-size:34px}
+  .res li{grid-template-columns:1fr;gap:2px}
+  .bar{height:34px}
+}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <p class="label">Ruta de estudio · de cero a operar con método</p>
+      <h1>Ruta <span>Trader</span></h1>
+      <p class="lede">Un plan completo, en orden, para aprender trading de verdad: cómo funciona un mercado por dentro, qué hacen las aplicaciones cuando tocas «Comprar», análisis técnico y fundamental, gestión del riesgo, psicología, backtesting y práctica. Cada fase trae fuentes reales: cursos, libros, estudios académicos, documentación oficial y videos.</p>
+      <div class="facts">
+        <div><b class="num" id="f-hours">≈210 h</b><span class="label">de estudio</span></div>
+        <div><b class="num">12</b><span class="label">fases</span></div>
+        <div><b class="num">7–9</b><span class="label">meses a 8–10 h/sem</span></div>
+      </div>
+    </div>
+    <div class="chartbox" aria-hidden="true">
+      <canvas id="candles"></canvas>
+      <div class="ticker"><span>RUTA · 1D</span><span id="tk">O 100.00 · H 0 · L 0 · C 0</span></div>
+    </div>
+  </header>
+
+  <section class="map" aria-label="Mapa de la ruta">
+    <div class="map-head">
+      <h2>Mapa de la ruta</h2>
+      <div class="progress"><span class="label">Tu avance</span><div class="track"><div class="fill" id="pfill"></div></div><span class="num" id="ptext">0 / 12</span></div>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="bar-legend"><span class="label">Fundamentos</span><span class="label">Método</span><span class="label">Práctica</span></div>
+  </section>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Índice">
+      <span class="label">Fases</span>
+      <ol id="toc"></ol>
+      <span class="label">Herramientas</span>
+      <ol>
+        <li><a href="#apps"><span class="n">A</span>Cómo funcionan las apps</a></li>
+        <li><a href="#riesgo"><span class="n">B</span>Calculadoras de riesgo</a></li>
+        <li><a href="#plan"><span class="n">C</span>Plantilla de plan</a></li>
+        <li><a href="#libros"><span class="n">D</span>Biblioteca</a></li>
+        <li><a href="#glosario"><span class="n">E</span>Glosario</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section aria-labelledby="realidad">
+        <div class="warnbox">
+          <b id="realidad">Lee esto antes de empezar</b>
+          <p>La mayoría de quienes hacen trading de corto plazo pierden dinero. En un estudio de todos los day traders de futuros del mini-índice en Brasil, el 97% de quienes persistieron más de 300 días perdió dinero (Chague, De-Losso y Giovannetti, 2019). En la Unión Europea, los brokers de CFD deben publicar qué porcentaje de cuentas minoristas pierde; las cifras suelen estar entre el 70% y el 85%. Esta ruta no promete ganancias: te enseña a entender el mercado, medir tu ventaja (si la tienes) y proteger tu capital.</p>
+          <p>Nada de esta página es asesoría financiera. Practica primero en cuenta demo y usa solo dinero que puedas perder.</p>
+        </div>
+      </section>
+
+      <div id="phases" style="display:grid;gap:64px"></div>
+
+      <section id="apps" aria-labelledby="apps-h">
+        <p class="label">Herramienta A</p>
+        <h2 id="apps-h">Cómo funcionan las aplicaciones de trading</h2>
+        <p class="intro">Una app de trading es la ventana. Detrás hay un broker que verifica tu dinero, decide a dónde mandar tu orden y te cobra por algo. Entender esa cadena te dice qué precio estás recibiendo, quién está al otro lado y dónde están tus fondos.</p>
+
+        <h3 style="font-size:22px;margin-top:28px">Qué pasa cuando tocas «Comprar»</h3>
+        <div class="scroll" role="img" aria-label="Diagrama del recorrido de una orden desde la app hasta la custodia">
+          <svg class="flow" viewBox="0 0 1040 250">
+            <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+            <rect class="box" x="10" y="90" width="130" height="70" rx="6"/><text x="75" y="120" text-anchor="middle">Tu app</text><text class="sub" x="75" y="140" text-anchor="middle">orden: 10 AAPL límite</text>
+            <rect class="box alt" x="180" y="90" width="150" height="70" rx="6"/><text x="255" y="120" text-anchor="middle">Broker</text><text class="sub" x="255" y="140" text-anchor="middle">saldo · margen · riesgo</text>
+            <rect class="box" x="370" y="90" width="140" height="70" rx="6"/><text x="440" y="120" text-anchor="middle">Enrutador</text><text class="sub" x="440" y="140" text-anchor="middle">elige el destino</text>
+            <rect class="box" x="550" y="14" width="170" height="58" rx="6"/><text x="635" y="40" text-anchor="middle">Bolsa / ECN</text><text class="sub" x="635" y="58" text-anchor="middle">libro público</text>
+            <rect class="box" x="550" y="96" width="170" height="58" rx="6"/><text x="635" y="122" text-anchor="middle">Creador de mercado</text><text class="sub" x="635" y="140" text-anchor="middle">PFOF / internaliza</text>
+            <rect class="box" x="550" y="178" width="170" height="58" rx="6"/><text x="635" y="204" text-anchor="middle">Libro del propio broker</text><text class="sub" x="635" y="222" text-anchor="middle">CFD · cripto · B-book</text>
+            <rect class="box" x="760" y="90" width="120" height="70" rx="6"/><text x="820" y="120" text-anchor="middle">Ejecución</text><text class="sub" x="820" y="140" text-anchor="middle">precio · hora</text>
+            <rect class="box alt" x="910" y="90" width="120" height="70" rx="6"/><text x="970" y="114" text-anchor="middle">Compensación</text><text x="970" y="132" text-anchor="middle">y custodia</text><text class="sub" x="970" y="150" text-anchor="middle">T+1 / T+2</text>
+            <path class="arrow" d="M140,125 H178" marker-end="url(#ah)"/>
+            <path class="arrow" d="M330,125 H368" marker-end="url(#ah)"/>
+            <path class="arrow" d="M510,115 C530,115 530,43 548,43" marker-end="url(#ah)"/>
+            <path class="arrow" d="M510,125 H548" marker-end="url(#ah)"/>
+            <path class="arrow" d="M510,135 C530,135 530,207 548,207" marker-end="url(#ah)"/>
+            <path class="arrow" d="M720,43 C740,43 740,115 758,115" marker-end="url(#ah)"/>
+            <path class="arrow" d="M720,125 H758" marker-end="url(#ah)"/>
+            <path class="arrow" d="M720,207 C740,207 740,135 758,135" marker-end="url(#ah)"/>
+            <path class="arrow" d="M880,125 H908" marker-end="url(#ah)"/>
+          </svg>
+        </div>
+        <ol class="steps">
+          <li><div><b>Creas la orden.</b> Eliges activo, cantidad, tipo (mercado, límite, stop) y vigencia (día, GTC). La app solo empaqueta esos datos y los envía al servidor del broker por una conexión cifrada.</div></li>
+          <li><div><b>El broker valida.</b> Revisa que tengas saldo o margen suficiente, que el activo esté habilitado para tu país y perfil (KYC), y aplica controles de riesgo: límites de tamaño, precio fuera de rango, órdenes duplicadas.</div></li>
+          <li><div><b>El enrutador decide el destino.</b> En acciones de EE.UU. puede ir a una bolsa (NYSE, Nasdaq), a un ECN o a un creador de mercado que paga al broker por recibir el flujo (PFOF). En CFD y en muchos brokers de forex, el propio broker es tu contraparte. En un exchange cripto, la orden entra al libro de órdenes del mismo exchange.</div></li>
+          <li><div><b>El motor de emparejamiento cruza la orden.</b> Prioridad por precio y luego por tiempo: la mejor oferta que llegó primero se ejecuta primero. Una orden de mercado consume liquidez del libro; una límite que no cruza queda esperando en él.</div></li>
+          <li><div><b>Recibes la confirmación.</b> Precio, cantidad, hora y comisión. Si el precio fue peor que el que veías, eso es deslizamiento (slippage).</div></li>
+          <li><div><b>Compensación y liquidación.</b> Una cámara de compensación garantiza que ambas partes cumplan (DTCC/NSCC en EE.UU.; en Colombia, la CRCC). La entrega de títulos y dinero ocurre días después: T+1 en EE.UU. desde mayo de 2024. Los títulos quedan en un depósito central (DTC en EE.UU., Deceval en Colombia) a nombre del broker o tuyo.</div></li>
+          <li><div><b>Custodia y reportes.</b> El broker guarda tus activos, calcula tu saldo en tiempo real, cobra financiamiento si usaste margen, abona dividendos y genera los extractos que necesitarás para impuestos.</div></li>
+        </ol>
+
+        <h3 style="font-size:22px;margin-top:36px">El libro de órdenes, la pieza central</h3>
+        <div class="two" style="margin-top:12px">
+          <div>
+            <table class="book" aria-label="Ejemplo de libro de órdenes">
+              <tbody>
+                <tr class="ask"><td>100.06</td><td>1.200</td><td style="width:45%"><span class="depth" style="width:80%"></span></td></tr>
+                <tr class="ask"><td>100.04</td><td>650</td><td><span class="depth" style="width:43%"></span></td></tr>
+                <tr class="ask"><td>100.02</td><td>300</td><td><span class="depth" style="width:20%"></span></td></tr>
+                <tr class="spread"><td colspan="3">spread 0.03 · ejemplo ilustrativo</td></tr>
+                <tr class="bid"><td>99.99</td><td>450</td><td><span class="depth" style="width:30%"></span></td></tr>
+                <tr class="bid"><td>99.97</td><td>900</td><td><span class="depth" style="width:60%"></span></td></tr>
+                <tr class="bid"><td>99.95</td><td>1.500</td><td><span class="depth" style="width:100%"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <p>Arriba están las <b>ofertas de venta (ask)</b> y abajo las <b>ofertas de compra (bid)</b>, con la cantidad disponible en cada precio. Si compras 500 acciones «a mercado», te llenas 300 a 100.02 y 200 a 100.04: tu precio promedio es peor que el que mostraba la pantalla. Por eso en activos con poca liquidez se usan órdenes límite.</p>
+            <p style="margin-top:10px">La diferencia entre el mejor ask y el mejor bid es el <b>spread</b>: un costo que pagas siempre, aunque la app diga «cero comisiones».</p>
+          </div>
+        </div>
+
+        <h3 style="font-size:22px;margin-top:36px">Tipos de plataformas</h3>
+        <div class="scroll">
+          <table class="wide">
+            <thead><tr><th>Tipo</th><th>Ejemplos</th><th>Cómo ejecuta</th><th>Cómo gana dinero</th><th>Qué vigilar</th></tr></thead>
+            <tbody>
+              <tr><td>Broker con acceso a bolsa</td><td>Interactive Brokers, Charles Schwab (thinkorswim), Fidelity</td><td>Enruta tu orden a bolsas y ECN reales; muchos permiten elegir el destino</td><td>Comisiones, intereses por margen, préstamo de valores, interés sobre tu efectivo</td><td>Plataformas complejas; tarifas por datos en tiempo real</td></tr>
+              <tr><td>App de inversión «sin comisión»</td><td>Robinhood, Webull; en Colombia, trii (acciones de la BVC)</td><td>En EE.UU. suele enviar el flujo a creadores de mercado (PFOF)</td><td>PFOF, spread, cambio de divisa, suscripciones premium, intereses</td><td>Gamificación que empuja a operar más; costo oculto en el spread y la conversión</td></tr>
+              <tr><td>Broker de CFD y forex</td><td>IG, XTB, Pepperstone, Plus500</td><td>Creador de mercado (el broker es tu contraparte, «B-book») o traslado a proveedores de liquidez (STP/ECN, «A-book»)</td><td>Spread, comisión por lote, financiamiento nocturno (swap)</td><td>Apalancamiento alto; con CFD no eres dueño del activo; conflicto de interés si gana cuando pierdes</td></tr>
+              <tr><td>Exchange de cripto</td><td>Coinbase, Kraken, Binance</td><td>Libro de órdenes propio; custodia las monedas</td><td>Comisiones maker/taker, tasas de financiamiento en perpetuos, retiros</td><td>Riesgo de contraparte (caso FTX, 2022); regulación desigual por país</td></tr>
+              <tr><td>Gráficos y análisis</td><td>TradingView</td><td>No ejecuta por sí misma; se conecta a brokers</td><td>Suscripciones, datos en tiempo real</td><td>Los datos gratis pueden venir con retraso</td></tr>
+              <tr><td>Terminal de ejecución</td><td>MetaTrader 4/5, cTrader, NinjaTrader</td><td>Software que el broker licencia; los precios los define el broker</td><td>Licencias al broker; mercado de bots (EA)</td><td>Bots comprados sin backtest verificable</td></tr>
+              <tr><td>Cuentas fondeadas (prop firms)</td><td>Empresas de «evaluación» de traders</td><td>Muchas operan en cuentas simuladas</td><td>Tarifas de examen y reintentos</td><td>La mayoría de participantes no aprueba; lee las reglas completas</td></tr>
+              <tr><td>Copy trading y señales</td><td>Funciones de copiar traders; canales de Telegram</td><td>Replica operaciones de otra persona</td><td>Comisión por seguidor, suscripción</td><td>Sesgo de supervivencia: ves a los que ganaron este año</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="two">
+          <div>
+            <h3>De dónde salen los precios que ves</h3>
+            <ul>
+              <li><b>Nivel 1:</b> último precio, mejor bid y mejor ask.</li>
+              <li><b>Nivel 2:</b> el libro con varias capas de profundidad.</li>
+              <li><b>Tiempo real o retrasado:</b> muchas bolsas cobran por los datos; gratis suele haber 15 minutos de retraso.</li>
+              <li><b>APIs:</b> REST para consultas y órdenes; WebSocket para recibir precios en streaming. Así funcionan también los bots.</li>
+              <li><b>Velas:</b> la app agrupa operaciones por intervalo y dibuja apertura, máximo, mínimo y cierre (OHLC).</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Costos que debes sumar siempre</h3>
+            <ul>
+              <li>Comisión por operación o por lote.</li>
+              <li>Spread y deslizamiento.</li>
+              <li>Financiamiento: margen o swap por mantener posiciones de un día a otro.</li>
+              <li>Conversión COP → USD y transferencias internacionales.</li>
+              <li>Datos de mercado y plataformas.</li>
+              <li>Impuestos sobre las ganancias.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="riesgo" aria-labelledby="riesgo-h">
+        <p class="label">Herramienta B</p>
+        <h2 id="riesgo-h">Calculadoras de riesgo</h2>
+        <p class="intro">Úsalas en la Fase 6 y antes de cada operación. Los valores iniciales son un ejemplo.</p>
+
+        <form class="tool" id="ps" onsubmit="return false">
+          <h3>Tamaño de posición</h3>
+          <div class="fields">
+            <label for="ps-cap">Capital de la cuenta (USD)<input id="ps-cap" type="number" inputmode="decimal" value="2000" min="0" step="any"></label>
+            <label for="ps-risk">Riesgo por operación (%)<input id="ps-risk" type="number" inputmode="decimal" value="1" min="0" step="0.1"></label>
+            <label for="ps-entry">Precio de entrada<input id="ps-entry" type="number" inputmode="decimal" value="100" step="any"></label>
+            <label for="ps-stop">Precio del stop-loss<input id="ps-stop" type="number" inputmode="decimal" value="97" step="any"></label>
+            <label for="ps-tp">Precio objetivo (take profit)<input id="ps-tp" type="number" inputmode="decimal" value="106" step="any"></label>
+          </div>
+          <div class="out" aria-live="polite">
+            <div><span>Dinero en riesgo</span><b id="o-risk">—</b></div>
+            <div><span>Riesgo por unidad</span><b id="o-unit">—</b></div>
+            <div class="big"><span>Unidades a comprar</span><b id="o-qty">—</b></div>
+            <div><span>Valor de la posición</span><b id="o-val">—</b></div>
+            <div><span>% de la cuenta expuesto</span><b id="o-exp">—</b></div>
+            <div><span>Relación riesgo / beneficio</span><b id="o-rr">—</b></div>
+          </div>
+          <p class="note">Fórmula: unidades = (capital × riesgo%) ÷ |entrada − stop|. Si el valor de la posición supera tu capital, necesitarías apalancamiento: reduce el tamaño o aleja la entrada del stop.</p>
+        </form>
+
+        <form class="tool" id="ex" onsubmit="return false">
+          <h3>Expectativa de un sistema</h3>
+          <div class="fields">
+            <label for="ex-wr">Tasa de acierto (%)<input id="ex-wr" type="number" inputmode="decimal" value="40" min="0" max="100" step="1"></label>
+            <label for="ex-win">Ganancia promedio (en R)<input id="ex-win" type="number" inputmode="decimal" value="2" min="0" step="0.1"></label>
+            <label for="ex-loss">Pérdida promedio (en R)<input id="ex-loss" type="number" inputmode="decimal" value="1" min="0" step="0.1"></label>
+            <label for="ex-n">Operaciones por mes<input id="ex-n" type="number" inputmode="numeric" value="20" min="0" step="1"></label>
+          </div>
+          <div class="out" aria-live="polite">
+            <div class="big" id="ex-ebox"><span>Expectativa por operación</span><b id="ex-e">—</b></div>
+            <div><span>Profit factor</span><b id="ex-pf">—</b></div>
+            <div><span>Resultado esperado al mes</span><b id="ex-m">—</b></div>
+            <div><span>Acierto mínimo para no perder</span><b id="ex-be">—</b></div>
+          </div>
+          <p class="note">R es lo que arriesgas en una operación. Expectativa = acierto × ganancia − (1 − acierto) × pérdida. Antes de restar costos. Un sistema puede ganar con 35% de acierto si sus ganancias son grandes, y perder con 70% si sus pérdidas lo son.</p>
+        </form>
+
+        <h3 style="font-size:20px;margin-top:28px">La matemática del drawdown</h3>
+        <p class="intro" style="margin-top:6px">Cuánto cae la cuenta tras una racha de pérdidas seguidas según el riesgo por operación, y cuánto necesitas ganar para volver al inicio.</p>
+        <div class="scroll"><table class="dd" id="dd"></table></div>
+      </section>
+
+      <section id="plan" aria-labelledby="plan-h">
+        <p class="label">Herramienta C</p>
+        <h2 id="plan-h">Plantilla de plan de trading</h2>
+        <p class="intro">Escríbelo antes de la Fase 9 y no operes nada que no esté aquí. Si una regla no se puede verificar con un sí o un no, no es una regla.</p>
+        <ol class="plan">
+          <li><b>Mercados y horario:</b> qué activos operas y en qué franja horaria (por ejemplo, 3 acciones del S&P 500, de 9:30 a 11:30 hora de Nueva York).</li>
+          <li><b>Estilo y marco temporal:</b> swing en gráfico diario, intradía en 15 minutos, etc.</li>
+          <li><b>Condición de entrada:</b> la regla exacta (por ejemplo, cierre por encima del máximo de 20 días con volumen mayor al promedio de 20 días).</li>
+          <li><b>Stop-loss:</b> dónde y por qué (por ejemplo, 2 × ATR(14) debajo de la entrada).</li>
+          <li><b>Salida con ganancia:</b> objetivo fijo, stop dinámico o salida por tiempo.</li>
+          <li><b>Tamaño de posición:</b> riesgo fijo por operación (0,5%–1%).</li>
+          <li><b>Límites:</b> pérdida máxima diaria y semanal; máximo de operaciones abiertas.</li>
+          <li><b>Qué no haces:</b> no operar noticias de alto impacto, no promediar pérdidas, no mover el stop en contra.</li>
+          <li><b>Registro:</b> qué anotas en el diario de cada operación (captura, motivo, emoción, resultado en R, error).</li>
+          <li><b>Revisión:</b> cada domingo; cada 50 operaciones calculas expectativa y decides si continúas.</li>
+        </ol>
+      </section>
+
+      <section id="libros" aria-labelledby="libros-h">
+        <p class="label">Herramienta D</p>
+        <h2 id="libros-h">Biblioteca esencial</h2>
+        <p class="intro">Ordenados aproximadamente en el orden en que conviene leerlos. Entre paréntesis, el título en español cuando existe edición traducida.</p>
+        <div class="books" id="books"></div>
+      </section>
+
+      <section id="glosario" aria-labelledby="glosario-h">
+        <p class="label">Herramienta E</p>
+        <h2 id="glosario-h">Glosario</h2>
+        <label for="q" class="label" style="display:block;margin-top:10px">Buscar término</label>
+        <input id="q" type="search" placeholder="spread, margen, ATR…" autocomplete="off">
+        <dl class="gloss" id="gloss"></dl>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <p>Ruta Trader es material educativo. No es asesoría financiera, tributaria ni legal. Los mercados implican riesgo de pérdida total del capital, y mayor aún con apalancamiento. Verifica siempre que tu broker esté regulado y consulta a un contador para tu situación tributaria.</p>
+    <p>Los enlaces llevan a sitios de terceros. Los marcados «búsqueda» abren una búsqueda en YouTube o Google Scholar con el canal o el artículo citado, para que encuentres la versión más reciente.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+const yt = q => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+const gs = q => "https://scholar.google.com/scholar?q=" + encodeURIComponent(q);
+const inv = q => "https://www.investopedia.com/search?q=" + encodeURIComponent(q);
+
+const PHASES = [
+ {id:"f0", short:"Realidad", title:"La realidad antes del primer trade", hours:4, level:"Inicio",
+  goal:"Saber qué es el trading, qué no es, cuáles son las probabilidades reales y decidir con datos si quieres seguir.",
+  topics:["Trading, inversión y especulación: diferencias","Estilos según horizonte: scalping, intradía, swing, posicional","Por qué la mayoría pierde: costos, apalancamiento, operar de más","Suma cero (o negativa tras costos) en derivados","Cuánto tiempo y dinero requiere aprender"],
+  res:[
+   {t:"Estudio",n:"Day Trading for a Living? — Chague, De-Losso y Giovannetti (2019)",d:"Todos los day traders de mini-índice en Brasil, 2013–2015: el 97% de quienes persistieron más de 300 días perdió dinero.",u:"https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3423101",c:"Gratis",l:"EN"},
+   {t:"Estudio",n:"Do Day Traders Rapidly Learn? — Barber, Lee, Liu y Odean",d:"Datos completos de la bolsa de Taiwán: menos del 1% de los day traders gana de forma consistente.",u:gs("Barber Lee Liu Odean day traders rapidly learn"),c:"Gratis",l:"EN",s:1},
+   {t:"Leer",n:"ESMA — medidas sobre CFD para minoristas",d:"Por qué Europa limitó el apalancamiento y obliga a publicar el porcentaje de cuentas que pierden.",u:"https://www.esma.europa.eu/",c:"Gratis",l:"EN/ES"},
+   {t:"Leer",n:"Investopedia — Day trading vs. swing trading",d:"Diferencias de estilo, tiempo y capital entre horizontes.",u:inv("day trading vs swing trading"),c:"Gratis",l:"EN"},
+   {t:"Ver",n:"Ben Felix — análisis de la evidencia sobre day trading",d:"Gestor de portafolios que revisa estudios académicos en lenguaje claro.",u:yt("Ben Felix day trading"),c:"Gratis",l:"EN",s:1}
+  ],
+  task:"Escribe una página: por qué quieres hacer trading, cuánto podrías perder sin afectar tu vida (ese es tu capital máximo de aprendizaje) y cuántas horas reales por semana tienes."},
+
+ {id:"f1", short:"Finanzas", title:"Fundamentos de finanzas y mercados", hours:18, level:"Inicio",
+  goal:"Entender qué es un activo, qué tipos existen, cómo se relacionan riesgo y rentabilidad, y cómo se forma un precio.",
+  topics:["Acciones, bonos, divisas, materias primas, índices, ETF y cripto","Rentabilidad, riesgo y volatilidad","Interés compuesto e inflación","Tasas de interés y su efecto en todos los activos","Diversificación y correlación","Oferta y demanda: cómo se mueve un precio"],
+  res:[
+   {t:"Practicar",n:"Khan Academy — Finanzas y mercados de capitales",d:"Lecciones cortas con ejercicios sobre acciones, bonos, interés y derivados.",u:"https://www.khanacademy.org/economics-finance-domain/core-finance",c:"Gratis",l:"EN/ES"},
+   {t:"Leer",n:"Zerodha Varsity — Módulo 1: Introducción a los mercados",d:"El mejor curso gratuito y estructurado de mercados; capítulos breves con ejemplos.",u:"https://zerodha.com/varsity/module/introduction-to-stock-markets/",c:"Gratis",l:"EN"},
+   {t:"Ver",n:"Coursera — Financial Markets, Robert Shiller (Yale)",d:"Curso del Nobel de Economía; puedes auditarlo gratis.",u:"https://www.coursera.org/learn/financial-markets-global",c:"Gratis/Pago",l:"EN, subt. ES"},
+   {t:"Ver",n:"Open Yale Courses — ECON 252, Financial Markets",d:"Las clases completas de Shiller grabadas en Yale.",u:"https://oyc.yale.edu/economics/econ-252-11",c:"Gratis",l:"EN"},
+   {t:"Ver",n:"The Plain Bagel",d:"Videos claros sobre conceptos financieros básicos, por un analista CFA.",u:yt("The Plain Bagel"),c:"Gratis",l:"EN",s:1},
+   {t:"Libro",n:"Un paseo aleatorio por Wall Street — Burton Malkiel",d:"Panorama de los mercados y de por qué es difícil ganarles.",u:"",c:"Pago",l:"ES"}
+  ],
+  task:"Explica con tus palabras la diferencia entre una acción, un bono, un ETF y un futuro. Calcula cuánto valen 1.000 USD al 8% anual durante 20 años (respuesta: ≈4.661 USD)."},
+
+ {id:"f2", short:"Mercado", title:"Cómo funciona un mercado por dentro", hours:15, level:"Básico",
+  goal:"Conocer la microestructura: quién hay al otro lado de tu operación, cómo se cruzan las órdenes y qué te cuesta cada una.",
+  topics:["Bolsas, ECN y mercados OTC","Libro de órdenes: bid, ask, spread, profundidad","Prioridad precio-tiempo en el motor de emparejamiento","Órdenes: mercado, límite, stop, stop-límite, trailing, OCO","Maker y taker; liquidez","Sesiones, pre-market, gaps y deslizamiento","Creadores de mercado, PFOF y trading de alta frecuencia","Compensación y liquidación (T+1)"],
+  res:[
+   {t:"Leer",n:"Investor.gov (SEC) — Cómo funcionan los mercados y tipos de órdenes",d:"Guías oficiales del regulador de EE.UU.",u:"https://www.investor.gov/introduction-investing",c:"Gratis",l:"EN/ES"},
+   {t:"Leer",n:"IBKR Campus — Traders' Academy",d:"Cursos gratuitos de Interactive Brokers sobre órdenes, mercados y su plataforma.",u:"https://www.interactivebrokers.com/campus/",c:"Gratis",l:"EN"},
+   {t:"Libro",n:"Trading and Exchanges — Larry Harris",d:"La referencia sobre microestructura, escrita por un ex economista jefe de la SEC.",u:"",c:"Pago",l:"EN"},
+   {t:"Libro",n:"Flash Boys — Michael Lewis",d:"Relato sobre el trading de alta frecuencia y la velocidad en las bolsas.",u:"",c:"Pago",l:"ES"},
+   {t:"Ver",n:"Patrick Boyle — videos sobre creadores de mercado y PFOF",d:"Profesor de finanzas y ex gestor de fondos.",u:yt("Patrick Boyle payment for order flow market makers"),c:"Gratis",l:"EN",s:1}
+  ],
+  task:"En una cuenta demo, abre el nivel 2 de una acción muy líquida y de una poco líquida; anota el spread de cada una. Coloca una orden de mercado, una límite y un stop, y describe qué pasó con cada una."},
+
+ {id:"f3", short:"Derivados", title:"Instrumentos, apalancamiento y derivados", hours:28, level:"Básico",
+  goal:"Entender qué compras cuando operas forex, futuros, opciones, CFD o cripto, y cómo el apalancamiento multiplica ganancias y pérdidas.",
+  topics:["Margen, apalancamiento, llamada de margen y liquidación","Venta en corto","Forex: pares, pips, lotes, swap","Futuros: contrato, vencimiento, márgenes, roll","Opciones: call, put, prima, strike, griegas, volatilidad implícita","CFD: por qué no es lo mismo que tener la acción","Cripto: spot, perpetuos, tasa de financiamiento, custodia"],
+  res:[
+   {t:"Leer",n:"BabyPips — School of Pipsology",d:"Curso de forex desde cero, muy bien organizado por niveles.",u:"https://www.babypips.com/learn/forex",c:"Gratis",l:"EN"},
+   {t:"Leer",n:"CME Group — Education",d:"Cursos del mayor mercado de futuros del mundo sobre contratos y márgenes.",u:"https://www.cmegroup.com/education.html",c:"Gratis",l:"EN"},
+   {t:"Leer",n:"Options Industry Council",d:"Educación oficial sobre opciones, con calculadora y cursos.",u:"https://www.optionseducation.org/",c:"Gratis",l:"EN"},
+   {t:"Leer",n:"Zerodha Varsity — Futuros y Teoría de opciones",d:"Módulos 4 y 5, explicados con ejemplos numéricos.",u:"https://zerodha.com/varsity/module/option-theory/",c:"Gratis",l:"EN"},
+   {t:"Ver",n:"tastylive — mecánica de opciones",d:"Canal especializado en opciones y volatilidad.",u:yt("tastylive options basics"),c:"Gratis",l:"EN",s:1},
+   {t:"Libro",n:"Options, Futures, and Other Derivatives — John Hull",d:"El libro de texto estándar en universidades.",u:"",c:"Pago",l:"EN/ES"},
+   {t:"Libro",n:"Option Volatility and Pricing — Sheldon Natenberg",d:"La referencia práctica para operar opciones.",u:"",c:"Pago",l:"EN"}
+  ],
+  task:"Con 1.000 USD y apalancamiento 1:10, ¿qué movimiento en contra borra la cuenta? (≈10%). Calcula el valor de un pip en un lote estándar de EUR/USD (10 USD) y el costo de una call que compras a 2,50 por 100 acciones (250 USD)."},
+
+ {id:"f4", short:"Técnico", title:"Análisis técnico", hours:40, level:"Intermedio",
+  goal:"Leer gráficos con criterio: tendencia, niveles, volumen e indicadores, sabiendo qué dice la evidencia sobre cada herramienta.",
+  topics:["Velas japonesas y OHLC","Tendencia y estructura: máximos y mínimos","Soportes, resistencias y zonas","Volumen","Medias móviles, RSI, MACD, Bandas de Bollinger, ATR","Patrones chartistas y rupturas","Análisis en varios marcos temporales","Qué funciona y qué no según los estudios"],
+  res:[
+   {t:"Leer",n:"StockCharts — ChartSchool",d:"Enciclopedia de indicadores y patrones con fórmulas y ejemplos.",u:"https://chartschool.stockcharts.com/",c:"Gratis",l:"EN"},
+   {t:"Leer",n:"Zerodha Varsity — Módulo 2: Análisis técnico",d:"Curso completo de velas, indicadores y teoría de Dow.",u:"https://zerodha.com/varsity/module/technical-analysis/",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"TradingView — gráficos y modo Replay",d:"Practica en datos históricos barra por barra sin ver el futuro.",u:"https://www.tradingview.com/",c:"Gratis/Pago",l:"ES"},
+   {t:"Ver",n:"Rayner Teo",d:"Explicaciones prácticas de price action, tendencias y gestión de operaciones.",u:yt("Rayner Teo price action"),c:"Gratis",l:"EN",s:1},
+   {t:"Estudio",n:"Foundations of Technical Analysis — Lo, Mamaysky y Wang (2000)",d:"Journal of Finance: análisis estadístico de patrones chartistas.",u:gs("Lo Mamaysky Wang Foundations of Technical Analysis"),c:"Gratis",l:"EN",s:1},
+   {t:"Libro",n:"Technical Analysis of the Financial Markets — John Murphy",d:"(Análisis técnico de los mercados financieros) La biblia del análisis técnico.",u:"",c:"Pago",l:"ES"},
+   {t:"Libro",n:"Japanese Candlestick Charting Techniques — Steve Nison",d:"Quien introdujo las velas japonesas en Occidente.",u:"",c:"Pago",l:"EN"},
+   {t:"Libro",n:"Evidence-Based Technical Analysis — David Aronson",d:"Cómo probar científicamente si una señal técnica funciona.",u:"",c:"Pago",l:"EN"}
+  ],
+  task:"Marca en 20 gráficos distintos la tendencia, soportes y resistencias sin indicadores. Luego usa Replay para ver qué pasó después y anota tu tasa de acierto. Repite con un indicador y compara."},
+
+ {id:"f5", short:"Fundamental", title:"Análisis fundamental y macroeconomía", hours:28, level:"Intermedio",
+  goal:"Saber qué mueve los precios a mediano plazo: resultados de empresas, tasas de interés, inflación y noticias económicas.",
+  topics:["Estados financieros: resultados, balance, flujo de caja","Ratios: P/E, EV/EBITDA, ROE, deuda/patrimonio, márgenes","Temporada de resultados y expectativas","Valoración por flujos descontados","Bancos centrales: Fed, BCE, Banco de la República","Datos clave: inflación (IPC/CPI), empleo (NFP), PIB","Calendario económico y reacción a noticias","Relaciones entre dólar, tasas, petróleo y peso colombiano"],
+  res:[
+   {t:"Leer",n:"Zerodha Varsity — Módulo 3: Análisis fundamental",d:"Cómo leer un informe anual y calcular ratios.",u:"https://zerodha.com/varsity/module/fundamental-analysis/",c:"Gratis",l:"EN"},
+   {t:"Ver",n:"Aswath Damodaran (NYU) — clases y datos de valoración",d:"El profesor de valoración más reconocido publica gratis clases, hojas de cálculo y bases de datos.",u:"https://pages.stern.nyu.edu/~adamodar/",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"SEC EDGAR",d:"Informes oficiales (10-K, 10-Q) de todas las empresas listadas en EE.UU.",u:"https://www.sec.gov/edgar/search/",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"FRED — Reserva Federal de St. Louis",d:"Series macro: tasas, inflación, empleo, curva de rendimientos.",u:"https://fred.stlouisfed.org/",c:"Gratis",l:"EN"},
+   {t:"Leer",n:"Banco de la República",d:"Tasa de intervención, inflación y tasa de cambio en Colombia.",u:"https://www.banrep.gov.co/",c:"Gratis",l:"ES"},
+   {t:"Practicar",n:"Investing.com — Calendario económico",d:"Fechas y expectativas de cada dato macro con su impacto.",u:"https://es.investing.com/economic-calendar/",c:"Gratis",l:"ES"},
+   {t:"Libro",n:"El inversor inteligente — Benjamin Graham",d:"La base del análisis de valor.",u:"",c:"Pago",l:"ES"}
+  ],
+  task:"Descarga el 10-K de una empresa y calcula 5 ratios. Luego, en el calendario económico, elige un dato de inflación de EE.UU. y anota cómo se movieron el dólar y el S&P 500 en la hora siguiente frente a lo esperado."},
+
+ {id:"f6", short:"Riesgo", title:"Gestión del riesgo", hours:18, level:"Clave", key:true,
+  goal:"La fase que separa a quien sobrevive de quien quiebra. Aprender a perder poco, dimensionar cada operación y medir si un sistema tiene ventaja.",
+  topics:["Riesgo por operación: la regla del 0,5%–1%","Dónde poner el stop: estructura y volatilidad (ATR)","Tamaño de posición","Múltiplos R y expectativa matemática","Tasa de acierto frente a relación riesgo/beneficio","Drawdown y matemática de la recuperación","Correlación entre posiciones abiertas","Riesgo de ruina y criterio de Kelly (y por qué usar una fracción)"],
+  res:[
+   {t:"Practicar",n:"Calculadoras de esta página",d:"Tamaño de posición, expectativa y tabla de drawdown.",u:"#riesgo",c:"Gratis",l:"ES"},
+   {t:"Leer",n:"Zerodha Varsity — Gestión del riesgo y psicología del trading",d:"Módulo dedicado a riesgo, tamaño de posición y Kelly.",u:"https://zerodha.com/varsity/",c:"Gratis",l:"EN"},
+   {t:"Leer",n:"Investopedia — Position sizing y risk of ruin",d:"Definiciones y ejemplos numéricos.",u:inv("position sizing"),c:"Gratis",l:"EN"},
+   {t:"Libro",n:"Trade Your Way to Financial Freedom — Van K. Tharp",d:"Introdujo la idea de múltiplos R y expectativa para traders.",u:"",c:"Pago",l:"EN/ES"},
+   {t:"Libro",n:"The Mathematics of Money Management — Ralph Vince",d:"Fundamento matemático del tamaño de posición (f óptima).",u:"",c:"Pago",l:"EN"}
+  ],
+  task:"Con la calculadora de expectativa, demuestra que 40% de acierto con ganancias de 2R tiene expectativa positiva (+0,2R). Luego calcula cuántas pérdidas seguidas a 1% de riesgo te dejan en −10%."},
+
+ {id:"f7", short:"Psicología", title:"Psicología y disciplina", hours:12, level:"Clave", key:true,
+  goal:"Reconocer los sesgos que te harán romper tus reglas y construir hábitos que los contengan.",
+  topics:["Aversión a la pérdida y efecto disposición","Exceso de confianza y operar de más","Sesgo de confirmación y FOMO","Operar por revancha","El plan escrito como contrato contigo mismo","Diario de trading","Rutinas antes y después del mercado"],
+  res:[
+   {t:"Estudio",n:"Trading Is Hazardous to Your Wealth — Barber y Odean (2000)",d:"Journal of Finance: los inversionistas que más operan obtienen los peores resultados.",u:gs("Barber Odean Trading Is Hazardous to Your Wealth"),c:"Gratis",l:"EN",s:1},
+   {t:"Libro",n:"Trading in the Zone — Mark Douglas",d:"(Trading en la zona) Pensar en probabilidades y aceptar el riesgo.",u:"",c:"Pago",l:"ES"},
+   {t:"Libro",n:"Thinking, Fast and Slow — Daniel Kahneman",d:"(Pensar rápido, pensar despacio) Los sesgos cognitivos explicados por el Nobel que los estudió.",u:"",c:"Pago",l:"ES"},
+   {t:"Libro",n:"The Psychology of Trading — Brett Steenbarger",d:"Psicólogo que trabaja con traders profesionales.",u:"",c:"Pago",l:"EN"},
+   {t:"Libro",n:"Market Wizards — Jack Schwager",d:"Entrevistas a traders exitosos: el tema común es el control del riesgo.",u:"",c:"Pago",l:"EN/ES"},
+   {t:"Libro",n:"Reminiscences of a Stock Operator — Edwin Lefèvre",d:"(Memorias de un especulador de bolsa) Clásico de 1923 sobre Jesse Livermore.",u:"",c:"Pago",l:"ES"}
+  ],
+  task:"Redacta tu plan de trading con la plantilla de esta página y crea tu diario (hoja de cálculo o Notion) con las columnas: fecha, activo, motivo, entrada, stop, salida, resultado en R, emoción, error."},
+
+ {id:"f8", short:"Backtest", title:"Diseñar y probar una estrategia", hours:35, level:"Avanzado",
+  goal:"Convertir una idea en reglas exactas y probarla en datos históricos sin engañarte a ti mismo.",
+  topics:["De idea a reglas sin ambigüedad","Calidad de datos: ajustes por dividendos y splits, sesgo de supervivencia","Incluir comisiones, spread y deslizamiento","Datos dentro y fuera de muestra","Walk-forward","Sobreajuste (overfitting)","Métricas: expectativa, profit factor, Sharpe, drawdown máximo","Simulación de Monte Carlo"],
+  res:[
+   {t:"Practicar",n:"TradingView — Pine Script y Strategy Tester",d:"Escribe y prueba estrategias sin instalar nada.",u:"https://www.tradingview.com/pine-script-docs/",c:"Gratis/Pago",l:"EN"},
+   {t:"Practicar",n:"Backtesting.py",d:"Librería de Python sencilla para backtests, con gráficos interactivos.",u:"https://kernc.github.io/backtesting.py/",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"QuantConnect (LEAN)",d:"Plataforma con datos históricos, backtests en la nube y paso a real.",u:"https://www.quantconnect.com/",c:"Gratis/Pago",l:"EN"},
+   {t:"Practicar",n:"Backtrader",d:"Framework de Python muy usado para estrategias y brokers.",u:"https://www.backtrader.com/",c:"Gratis",l:"EN"},
+   {t:"Estudio",n:"The Probability of Backtest Overfitting — Bailey, Borwein, López de Prado y Zhu",d:"Por qué probar muchas variantes casi garantiza un resultado falso.",u:gs("The Probability of Backtest Overfitting Bailey Borwein Lopez de Prado"),c:"Gratis",l:"EN",s:1},
+   {t:"Libro",n:"Quantitative Trading — Ernest Chan",d:"Guía práctica para crear y probar estrategias como trader independiente.",u:"",c:"Pago",l:"EN"}
+  ],
+  task:"Escribe una estrategia simple (cruce de medias o ruptura de 20 días), pruébala en 10 años de datos con comisiones, reserva el último 30% como fuera de muestra y documenta los resultados aunque sean malos."},
+
+ {id:"f9", short:"Práctica", title:"Práctica supervisada: demo y luego capital pequeño", hours:0, weeks:12, level:"Práctica",
+  goal:"Ejecutar tu plan en condiciones reales, medir resultados y decidir con datos si escalar, ajustar o parar.",
+  topics:["4–8 semanas en cuenta demo siguiendo el plan sin excepciones","Mínimo 50–100 operaciones registradas antes de juzgar","Paso a capital real pequeño: la demo no enseña la emoción","Revisión semanal del diario","Métricas: expectativa, profit factor, drawdown, % de reglas cumplidas","Criterios escritos para aumentar o reducir tamaño"],
+  res:[
+   {t:"Practicar",n:"TradingView — Paper Trading",d:"Cuenta simulada integrada en los gráficos.",u:"https://www.tradingview.com/",c:"Gratis",l:"ES"},
+   {t:"Practicar",n:"Interactive Brokers — cuenta de simulación",d:"Simulador con la misma plataforma que la cuenta real.",u:"https://www.interactivebrokers.com/campus/",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"Alpaca — paper trading con API",d:"Simulación de acciones de EE.UU. ideal si vas a automatizar.",u:"https://docs.alpaca.markets/",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"Tradervue — diario de trading",d:"Importa operaciones del broker y calcula estadísticas.",u:"https://www.tradervue.com/",c:"Gratis/Pago",l:"EN"}
+  ],
+  task:"Al terminar, escribe un informe con expectativa, profit factor, drawdown máximo y cuántas veces rompiste el plan. Si la expectativa tras costos es negativa, vuelve a la Fase 8."},
+
+ {id:"f10", short:"Regulación", title:"Regulación, impuestos y seguridad", hours:6, level:"Clave", key:true,
+  goal:"Proteger tu dinero de brokers no regulados y estafas, y declarar correctamente tus ganancias.",
+  topics:["Cómo verificar que un broker está regulado","Segregación de fondos y protección al inversionista (SIPC en EE.UU.)","Señales de estafa: rentabilidad garantizada, gurús de señales, presión para depositar","Riesgo de contraparte en exchanges cripto","Impuestos en Colombia: acciones en bolsa, broker extranjero, cripto","Declaración de activos en el exterior y registro cambiario"],
+  res:[
+   {t:"Leer",n:"Superintendencia Financiera de Colombia",d:"Consulta entidades vigiladas y alertas sobre entidades no autorizadas.",u:"https://www.superfinanciera.gov.co/",c:"Gratis",l:"ES"},
+   {t:"Practicar",n:"FINRA BrokerCheck",d:"Verifica brokers y asesores registrados en EE.UU.",u:"https://brokercheck.finra.org/",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"FCA Financial Services Register",d:"Registro del regulador del Reino Unido.",u:"https://register.fca.org.uk/",c:"Gratis",l:"EN"},
+   {t:"Leer",n:"CNMV — advertencias sobre entidades",d:"El regulador español publica listas de chiringuitos financieros.",u:"https://www.cnmv.es/",c:"Gratis",l:"ES"},
+   {t:"Leer",n:"DIAN",d:"Normativa y formularios de declaración de renta.",u:"https://www.dian.gov.co/",c:"Gratis",l:"ES"},
+   {t:"Leer",n:"Estatuto Tributario — art. 36-1 (venta de acciones en bolsa)",d:"Utilidades por venta de acciones inscritas en bolsa no gravadas por debajo de cierto % de la sociedad; el umbral cambió con la Ley 2277 de 2022.",u:"http://www.secretariasenado.gov.co/senado/basedoc/estatuto_tributario.html",c:"Gratis",l:"ES"}
+  ],
+  task:"Busca tu broker en el registro de su regulador y guarda la captura. Si vives en Colombia, pregunta a un contador cómo declarar ganancias en un broker extranjero (renta del exterior) y si superas el umbral de activos en el exterior (2.000 UVT)."},
+
+ {id:"f11", short:"Algorítmico", title:"Trading algorítmico y cuantitativo (opcional)", hours:60, level:"Avanzado",
+  goal:"Automatizar estrategias ya validadas y estudiar finanzas cuantitativas con rigor estadístico.",
+  topics:["Python: pandas, numpy, matplotlib","Datos: yfinance, APIs de brokers, ccxt para cripto","APIs REST y WebSocket; manejo de órdenes y errores","Estadística de series de tiempo: retornos, estacionariedad, autocorrelación","Bot en paper trading con registro y botón de apagado","Machine learning en finanzas y sus trampas"],
+  res:[
+   {t:"Ver",n:"MIT OpenCourseWare — 18.S096 Matemáticas aplicadas a finanzas",d:"Curso completo con videos, notas y ejercicios.",u:"https://ocw.mit.edu/courses/18-s096-topics-in-mathematics-with-applications-in-finance-fall-2013/",c:"Gratis",l:"EN"},
+   {t:"Leer",n:"Python for Data Analysis — Wes McKinney",d:"Del creador de pandas; edición en línea gratis.",u:"https://wesmckinney.com/book/",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"ccxt",d:"Librería unificada para más de 100 exchanges de cripto.",u:"https://github.com/ccxt/ccxt",c:"Gratis",l:"EN"},
+   {t:"Practicar",n:"vectorbt",d:"Backtests vectorizados muy rápidos para probar muchas variantes.",u:"https://vectorbt.dev/",c:"Gratis/Pago",l:"EN"},
+   {t:"Practicar",n:"yfinance",d:"Descarga datos históricos de Yahoo Finance desde Python.",u:"https://github.com/ranaroussi/yfinance",c:"Gratis",l:"EN"},
+   {t:"Libro",n:"Advances in Financial Machine Learning — Marcos López de Prado",d:"Cómo aplicar ML a mercados sin caer en sobreajuste.",u:"",c:"Pago",l:"EN"}
+  ],
+  task:"Construye un bot que opere en paper trading la estrategia validada en la Fase 8, con registro de cada orden, límite de pérdida diaria y un interruptor de apagado manual."}
+];
+
+const BOOKS = [
+ ["Un paseo aleatorio por Wall Street","Burton Malkiel · contexto y evidencia"],
+ ["Trading and Exchanges","Larry Harris · microestructura"],
+ ["Análisis técnico de los mercados financieros","John Murphy · técnico"],
+ ["Japanese Candlestick Charting Techniques","Steve Nison · velas"],
+ ["Options, Futures, and Other Derivatives","John Hull · derivados"],
+ ["El inversor inteligente","Benjamin Graham · fundamental"],
+ ["Trade Your Way to Financial Freedom","Van K. Tharp · riesgo y sistemas"],
+ ["Trading en la zona","Mark Douglas · psicología"],
+ ["Pensar rápido, pensar despacio","Daniel Kahneman · sesgos"],
+ ["Market Wizards","Jack Schwager · entrevistas"],
+ ["Memorias de un especulador de bolsa","Edwin Lefèvre · clásico"],
+ ["Evidence-Based Technical Analysis","David Aronson · método científico"],
+ ["Quantitative Trading","Ernest Chan · estrategias"],
+ ["Option Volatility and Pricing","Sheldon Natenberg · opciones"],
+ ["Advances in Financial Machine Learning","Marcos López de Prado · cuantitativo"],
+ ["Flash Boys","Michael Lewis · alta frecuencia"]
+];
+
+const GLOSS = [
+ ["Ask","Precio más bajo al que alguien está dispuesto a vender."],
+ ["ATR","Average True Range: rango promedio de movimiento por vela; mide volatilidad y sirve para ubicar stops."],
+ ["Backtest","Simulación de una estrategia sobre datos históricos."],
+ ["Bid","Precio más alto al que alguien está dispuesto a comprar."],
+ ["Broker","Intermediario que recibe tus órdenes, las ejecuta y custodia tus activos."],
+ ["CFD","Contrato por diferencia: apuestas al cambio de precio sin ser dueño del activo."],
+ ["Cámara de compensación","Entidad que se interpone entre comprador y vendedor y garantiza que ambos cumplan."],
+ ["Drawdown","Caída desde el máximo de la cuenta hasta el mínimo posterior."],
+ ["ECN","Red electrónica que cruza órdenes de compradores y vendedores directamente."],
+ ["ETF","Fondo que cotiza en bolsa como una acción y replica un índice o canasta."],
+ ["Expectativa","Ganancia promedio esperada por operación, medida en dinero o en R."],
+ ["Futuro","Contrato para comprar o vender un activo a un precio fijado en una fecha futura."],
+ ["Gap","Salto de precio entre el cierre de una vela y la apertura de la siguiente."],
+ ["Griegas","Medidas de sensibilidad de una opción: delta, gamma, theta, vega."],
+ ["Liquidez","Facilidad para comprar o vender sin mover mucho el precio."],
+ ["Llamada de margen","Aviso del broker cuando tu garantía no alcanza; si no depositas, cierra tus posiciones."],
+ ["Lote","Unidad de tamaño en forex: estándar 100.000, mini 10.000, micro 1.000 unidades."],
+ ["Margen","Dinero que el broker retiene como garantía al operar apalancado."],
+ ["Media móvil","Promedio del precio en los últimos N periodos."],
+ ["Opción call","Derecho, no obligación, a comprar un activo a un precio (strike) hasta una fecha."],
+ ["Opción put","Derecho, no obligación, a vender un activo a un precio hasta una fecha."],
+ ["Orden límite","Se ejecuta solo a tu precio o a uno mejor."],
+ ["Orden de mercado","Se ejecuta de inmediato al mejor precio disponible."],
+ ["Orden stop","Se activa cuando el precio toca un nivel; se usa para cortar pérdidas o entrar en rupturas."],
+ ["Overfitting","Ajustar tanto una estrategia al pasado que deja de funcionar en datos nuevos."],
+ ["PFOF","Pago por flujo de órdenes: un creador de mercado le paga al broker por ejecutar tus órdenes."],
+ ["Pip","Movimiento mínimo convencional en forex; en EUR/USD es 0,0001."],
+ ["Profit factor","Ganancias brutas divididas entre pérdidas brutas."],
+ ["R","La cantidad que arriesgas en una operación; las ganancias y pérdidas se expresan en múltiplos de R."],
+ ["RSI","Índice de fuerza relativa: oscilador de 0 a 100 que compara subidas y bajadas recientes."],
+ ["Sharpe","Rentabilidad extra por unidad de volatilidad."],
+ ["Slippage","Diferencia entre el precio esperado y el precio real de ejecución."],
+ ["Spread","Diferencia entre el mejor ask y el mejor bid."],
+ ["Stop-loss","Orden que cierra la operación si el precio llega a tu nivel de pérdida máxima."],
+ ["Swap","Costo o abono por mantener una posición apalancada de un día a otro."],
+ ["T+1","La liquidación ocurre un día hábil después de la operación."],
+ ["Volatilidad implícita","Volatilidad futura que el mercado descuenta en el precio de las opciones."]
+];
+
+// ---- progress storage (per viewer) ----
+const KEY = "rutaTrader.done.v1";
+let done = new Set();
+try { done = new Set(JSON.parse(localStorage.getItem(KEY) || "[]")); } catch(e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify([...done])); } catch(e) {} }
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtDur = p => p.weeks ? p.weeks + " semanas" : p.hours + " h";
+
+// ---- render phases ----
+const host = document.getElementById("phases");
+host.innerHTML = PHASES.map((p,i) => `
+ <section class="phase" id="${p.id}" aria-labelledby="${p.id}-h">
+  <div class="phase-head">
+   <div class="phase-no">${String(i).padStart(2,"0")}</div>
+   <div>
+    <h3 id="${p.id}-h">${esc(p.title)}</h3>
+    <div class="chips"><span class="chip num">${fmtDur(p)}</span><span class="chip${p.key?" key":""}">${esc(p.level)}</span><span class="chip">${p.res.length} fuentes</span></div>
+   </div>
+   <label class="check" for="chk-${p.id}"><input type="checkbox" id="chk-${p.id}" data-id="${p.id}"${done.has(p.id)?" checked":""}> Completada</label>
+  </div>
+  <p class="goal">${esc(p.goal)}</p>
+  <div class="cols">
+   <div class="topics"><h4>Temas</h4><ul>${p.topics.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>
+   <div class="res"><h4>Fuentes</h4><ul>${p.res.map(r=>`
+    <li><span class="tag ${r.t}">${r.t}</span><div>${r.u?`<a href="${esc(r.u)}"${r.u[0]==="#"?"":' target="_blank" rel="noopener"'}>${esc(r.n)}</a>`:`<b>${esc(r.n)}</b>`}<span class="meta">${esc(r.c)} · ${esc(r.l)}${r.s?" · búsqueda":""}</span><p>${esc(r.d)}</p></div></li>`).join("")}
+   </ul></div>
+  </div>
+  <div class="task"><span class="label">Ejercicio de control</span><p>${esc(p.task)}</p></div>
+ </section>`).join("");
+
+// ---- toc + bar ----
+const toc = document.getElementById("toc"), bar = document.getElementById("bar");
+const weight = p => p.weeks ? p.weeks * 8 : p.hours; // 12 weeks of practice ≈ 96 h
+const totalW = PHASES.reduce((a,p)=>a+weight(p),0);
+const studyH = PHASES.filter(p=>!p.weeks && p.id!=="f11").reduce((a,p)=>a+p.hours,0);
+document.getElementById("f-hours").textContent = "≈" + studyH + " h";
+function paint(){
+  toc.innerHTML = PHASES.map((p,i)=>`<li><a href="#${p.id}" class="${done.has(p.id)?"done":""}"><span class="n">${done.has(p.id)?"✓":String(i).padStart(2,"0")}</span>${esc(p.short)}</a></li>`).join("");
+  bar.innerHTML = PHASES.map((p,i)=>`<a href="#${p.id}" class="${done.has(p.id)?"done":""}" style="flex:${weight(p)} 1 0" title="${esc(p.title)} · ${fmtDur(p)}">${String(i).padStart(2,"0")}<span>&nbsp;${esc(p.short)}</span></a>`).join("");
+  document.getElementById("pfill").style.width = (done.size/PHASES.length*100) + "%";
+  document.getElementById("ptext").textContent = done.size + " / " + PHASES.length;
+}
+host.addEventListener("change", e => {
+  const id = e.target.dataset && e.target.dataset.id; if(!id) return;
+  e.target.checked ? done.add(id) : done.delete(id); save(); paint();
+});
+paint();
+
+// ---- books + glossary ----
+document.getElementById("books").innerHTML = BOOKS.map(b=>`<div><b>${esc(b[0])}</b><span>${esc(b[1])}</span></div>`).join("");
+const gl = document.getElementById("gloss");
+function glossary(q){
+  q = (q||"").trim().toLowerCase();
+  const rows = GLOSS.filter(g => !q || (g[0]+" "+g[1]).toLowerCase().includes(q));
+  gl.innerHTML = rows.length ? rows.map(g=>`<div><dt>${esc(g[0])}</dt><dd>${esc(g[1])}</dd></div>`).join("") : `<div><dt>Sin resultados</dt><dd>Prueba con otra palabra, por ejemplo «orden» o «riesgo».</dd></div>`;
+}
+document.getElementById("q").addEventListener("input", e => glossary(e.target.value));
+glossary("");
+
+// ---- calculators ----
+const $ = id => document.getElementById(id);
+const nf = (v,d=2) => isFinite(v) ? v.toLocaleString("es-CO",{minimumFractionDigits:d,maximumFractionDigits:d}) : "—";
+function pos(){
+  const cap=+$("ps-cap").value, r=+$("ps-risk").value/100, en=+$("ps-entry").value, st=+$("ps-stop").value, tp=+$("ps-tp").value;
+  const risk = cap*r, unit = Math.abs(en-st), qty = unit>0 ? risk/unit : NaN, val = qty*en;
+  const rr = unit>0 ? Math.abs(tp-en)/unit : NaN;
+  $("o-risk").textContent = nf(risk) + " USD";
+  $("o-unit").textContent = unit>0 ? nf(unit) : "stop = entrada";
+  $("o-qty").textContent = nf(qty, qty<10?2:0);
+  $("o-val").textContent = nf(val) + " USD";
+  $("o-exp").textContent = cap>0 ? nf(val/cap*100,1) + " %" : "—";
+  $("o-rr").textContent = isFinite(rr) ? "1 : " + nf(rr,2) : "—";
+}
+function exp(){
+  const w=Math.min(Math.max(+$("ex-wr").value,0),100)/100, aw=+$("ex-win").value, al=+$("ex-loss").value, n=+$("ex-n").value;
+  const e = w*aw - (1-w)*al, pf = (1-w)*al>0 ? (w*aw)/((1-w)*al) : NaN, be = (aw+al)>0 ? al/(aw+al) : NaN;
+  $("ex-e").textContent = (e>=0?"+":"") + nf(e) + " R";
+  $("ex-ebox").className = "big " + (e>=0?"pos":"neg");
+  $("ex-pf").textContent = nf(pf);
+  $("ex-m").textContent = (e*n>=0?"+":"") + nf(e*n,1) + " R";
+  $("ex-be").textContent = isFinite(be) ? nf(be*100,1) + " %" : "—";
+}
+["ps-cap","ps-risk","ps-entry","ps-stop","ps-tp"].forEach(id=>$(id).addEventListener("input",pos));
+["ex-wr","ex-win","ex-loss","ex-n"].forEach(id=>$(id).addEventListener("input",exp));
+pos(); exp();
+
+// drawdown table
+const risks=[0.5,1,2,5,10], streaks=[3,5,10,15,20];
+let h = "<thead><tr><th>Pérdidas seguidas</th>" + risks.map(r=>`<th>${nf(r,r<1?1:0)}% por operación</th>`).join("") + "</tr></thead><tbody>";
+streaks.forEach(s=>{
+  h += `<tr><td>${s}</td>` + risks.map(r=>{
+    const left = Math.pow(1-r/100, s), dd = (1-left)*100, rec = (1/left-1)*100;
+    return `<td class="${dd>30?"bad":""}">−${nf(dd,1)}% <span style="color:var(--muted)">(+${nf(rec,0)}% para recuperar)</span></td>`;
+  }).join("") + "</tr>";
+});
+$("dd").innerHTML = h + "</tbody>";
+
+// ---- hero candlesticks ----
+const cv = $("candles"), ctx = cv.getContext("2d");
+function rng(seed){ return () => (seed = (seed*1664525 + 1013904223) % 4294967296) / 4294967296; }
+const R = rng(20261027), bars = []; let p = 100;
+for(let i=0;i<64;i++){
+  const drift = (i<22?-0.12:i<40?0.05:0.32);
+  const o = p, c = o + (R()-0.5)*2.4 + drift;
+  const hi = Math.max(o,c) + R()*1.3, lo = Math.min(o,c) - R()*1.3;
+  bars.push({o,h:hi,l:lo,c,v:0.3+R()}); p = c;
+}
+const last = bars[bars.length-1];
+$("tk").textContent = `O ${last.o.toFixed(2)} · H ${last.h.toFixed(2)} · L ${last.l.toFixed(2)} · C ${last.c.toFixed(2)}`;
+function draw(){
+  const css = getComputedStyle(document.documentElement);
+  const up = css.getPropertyValue("--up").trim(), dn = css.getPropertyValue("--down").trim(), ln = css.getPropertyValue("--line").trim(), mu = css.getPropertyValue("--muted").trim(), ac = css.getPropertyValue("--accent").trim();
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if(!W) return;
+  cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  const top = 8, volH = 34, chartH = H - volH - 14;
+  const mx = Math.max(...bars.map(b=>b.h)), mn = Math.min(...bars.map(b=>b.l));
+  const y = v => top + (mx - v)/(mx - mn)*(chartH - top);
+  const step = W / bars.length, bw = Math.max(2, step*0.58);
+  ctx.strokeStyle = ln; ctx.lineWidth = 1;
+  for(let g=0; g<4; g++){ const gy = Math.round(top + g*(chartH-top)/3)+.5; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+  // 20-period moving average
+  ctx.strokeStyle = ac; ctx.lineWidth = 1.6; ctx.beginPath();
+  bars.forEach((b,i)=>{ if(i<19) return; const m = bars.slice(i-19,i+1).reduce((a,x)=>a+x.c,0)/20; const xx = i*step+step/2; i===19?ctx.moveTo(xx,y(m)):ctx.lineTo(xx,y(m)); });
+  ctx.stroke();
+  bars.forEach((b,i)=>{
+    const x = i*step + step/2, col = b.c>=b.o?up:dn;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(x)+.5, y(b.h)); ctx.lineTo(Math.round(x)+.5, y(b.l)); ctx.stroke();
+    const yt = y(Math.max(b.o,b.c)), hh = Math.max(1, Math.abs(y(b.o)-y(b.c)));
+    ctx.fillRect(x - bw/2, yt, bw, hh);
+    ctx.globalAlpha = .35; ctx.fillRect(x - bw/2, H - b.v*volH, bw, b.v*volH); ctx.globalAlpha = 1;
+  });
+  ctx.fillStyle = mu; ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "right";
+  ctx.fillText("MA 20", W - 4, top + 10);
+}
+draw();
+window.addEventListener("resize", draw);
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw); } catch(e) {}
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+})();
+</script>
