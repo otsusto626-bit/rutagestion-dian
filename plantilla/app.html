@@ -1,0 +1,900 @@
+<title>Ruta Trader</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect x='1' y='1' width='28' height='28' rx='7' fill='%232343A6'/%3E%3Cpath d='M9 8v14M15 6v18M21 10v10' stroke='%23fff' stroke-width='1.6'/%3E%3Crect x='7' y='11' width='4' height='7' fill='%23fff'/%3E%3Crect x='13' y='9' width='4' height='9' fill='%23fff'/%3E%3Crect x='19' y='12' width='4' height='6' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: aplicación de curso a pantalla completa. Barra lateral con módulos y lecciones, barra superior con migas y avance, lector de lecciones con índice lateral. */
+:root{
+  --paper:#F4F6F5; --panel:#FFFFFF; --ink:#13201B; --muted:#56655E; --line:#D7DED9;
+  --accent:#2343A6; --accent-ink:#FFFFFF; --accent-soft:#E6EBF8; --up:#12825A; --up-soft:#E2F3EB; --down:#BE3D2A; --down-soft:#FBE7E3; --warn:#9A6A08; --warn-soft:#FBF2DC;
+  --shade:rgba(19,32,27,.45);
+  --display:"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --side:300px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0F1513; --panel:#151D1A; --ink:#E4ECE8; --muted:#97A79F; --line:#26322D;
+  --accent:#93AAFF; --accent-ink:#0F1513; --accent-soft:#1B2340; --up:#3CC58C; --up-soft:#12281F; --down:#F0765F; --down-soft:#2E1813; --warn:#E3B54E; --warn-soft:#2A2312;
+  --shade:rgba(0,0,0,.6); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#0F1513; --panel:#151D1A; --ink:#E4ECE8; --muted:#97A79F; --line:#26322D;
+  --accent:#93AAFF; --accent-ink:#0F1513; --accent-soft:#1B2340; --up:#3CC58C; --up-soft:#12281F; --down:#F0765F; --down-soft:#2E1813; --warn:#E3B54E; --warn-soft:#2A2312;
+  --shade:rgba(0,0,0,.6); color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:30;background:var(--panel)}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.18;text-wrap:balance;margin:0}
+p{margin:0}
+.label,.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.eyebrow{color:var(--accent)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important;scroll-behavior:auto!important} }
+
+/* Shell */
+.app{display:grid;grid-template-columns:var(--side) minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel);border-right:1px solid var(--line);
+  padding-block:calc(env(safe-area-inset-top, 0px) + 20px) 20px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:14px;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand svg{flex:none}
+.brand b{font-family:var(--display);font-size:20px;letter-spacing:-.01em}
+.brand span{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.overall{display:grid;gap:6px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+.overall-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.overall b{font-family:var(--display);font-size:22px}
+.track{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.track i{display:block;height:100%;background:var(--up);width:0;transition:width .3s}
+.nav{display:grid;gap:14px}
+.nav h4{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px 8px}
+.nav ol{list-style:none;margin:0;padding:0;display:grid;gap:1px}
+.nav a{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-family:var(--display);font-size:15px;line-height:1.25}
+.nav a:hover{background:var(--accent-soft)}
+.nav a.cur{background:var(--accent-soft)}
+.nav a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+.nav a[aria-current="page"] .h{color:inherit;opacity:.8}
+.nav .h{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.nav .sub{margin:2px 0 6px 20px;padding-left:12px;border-left:1px solid var(--line)}
+.nav .sub a{grid-template-columns:18px minmax(0,1fr);font-size:14px;padding:5px 8px;gap:8px}
+.st{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--panel)}
+.st.go{border-color:var(--accent);color:var(--accent)}
+.st.ok{border-color:var(--up);background:var(--up);color:var(--panel)}
+.dotst{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--muted);justify-self:center}
+.dotst.ok{background:var(--up);border-color:var(--up)}
+.nav a[aria-current="page"] .st{border-color:var(--accent-ink);color:var(--accent-ink);background:transparent}
+.nav a[aria-current="page"] .dotst{border-color:var(--accent-ink)}
+.nav a[aria-current="page"] .dotst.ok{background:var(--accent-ink)}
+.ico{width:24px;height:24px;display:grid;place-items:center;color:var(--muted)}
+.nav a[aria-current="page"] .ico{color:inherit}
+.side-foot{margin-top:auto;display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.save{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted);display:flex;align-items:center;gap:6px}
+.save::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--up);flex:none}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:env(safe-area-inset-top, 0px);z-index:10;display:flex;align-items:center;gap:14px;min-height:56px;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:8px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.topbar .menu-btn{display:none}
+.crumbs{display:flex;align-items:center;gap:8px;min-width:0;font-family:var(--display);font-size:15px;color:var(--muted)}
+.crumbs a{color:inherit;text-decoration:none;white-space:nowrap}
+.crumbs a:hover{color:var(--ink)}
+.crumbs b{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs .sep{opacity:.5}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.mini{display:flex;align-items:center;gap:8px}
+.mini .track{width:110px}
+.content{width:100%;max-width:1440px;padding-block:32px 72px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+@media (min-width:1025px){
+  .topbar{padding-left:32px;padding-right:max(32px, env(safe-area-inset-right, 0px))}
+  .content{padding-left:44px;padding-right:max(44px, env(safe-area-inset-right, 0px))}
+}
+.view{display:grid;grid-template-columns:minmax(0,1fr);gap:28px}
+.view > *{min-width:0}
+.shade{position:fixed;inset:0;background:var(--shade);z-index:40}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--display);font-size:15px;font-weight:600;padding:10px 16px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);cursor:pointer;text-decoration:none;line-height:1.2}
+.btn:hover{background:var(--accent-soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.btn.done{background:var(--up-soft);border-color:var(--up);color:var(--up)}
+.btn.small{font-size:13px;padding:6px 10px;font-weight:500}
+.btn.danger{border-color:var(--down);color:var(--down)}
+
+/* Home */
+.welcome{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:40px;align-items:center}
+.welcome h1{font-size:clamp(34px,4.4vw,58px);font-weight:700;letter-spacing:-.02em}
+.welcome h1 span{color:var(--accent)}
+.lede{font-size:18px;max-width:64ch;margin-top:14px}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.chartbox{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 14px 10px}
+.chartbox canvas{display:block;width:100%;height:220px}
+.ticker{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.stats div{padding:16px 18px;border-right:1px solid var(--line);display:grid;gap:2px}
+.stats div:last-child{border-right:0}
+.stats b{font-family:var(--display);font-size:28px;font-variant-numeric:tabular-nums}
+.group-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px}
+.group-head h2{font-size:22px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px}
+.card{display:grid;gap:10px;align-content:start;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);text-decoration:none;color:var(--ink);transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .no{font-family:var(--mono);font-size:13px;color:var(--accent)}
+.card h3{font-size:19px}
+.card p{font-size:14px;color:var(--muted)}
+.card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pill{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.go{border-color:var(--accent);color:var(--accent)}
+.pill.ok{border-color:var(--up);color:var(--up);background:var(--up-soft)}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:14px}
+.warnbox{background:var(--warn-soft);border-left:3px solid var(--warn);padding:16px 18px;border-radius:0 8px 8px 0;display:grid;gap:8px}
+.warnbox b{font-family:var(--display)}
+
+/* Module overview */
+.mod-head{display:grid;gap:12px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.mod-head h1{font-size:clamp(30px,3.8vw,48px);font-weight:700;letter-spacing:-.015em}
+.mod-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.chip{font-family:var(--mono);font-size:12px;padding:3px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:var(--panel)}
+.chip.ok{border-color:var(--up);color:var(--up);background:var(--up-soft)}
+.mod-prog{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mod-prog .track{flex:1 1 160px;max-width:340px}
+.mod-body{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:start}
+.mod-body > *{min-width:0}
+.toc-list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.toc-list li + li{border-top:1px solid var(--line)}
+.toc-list a{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 16px;text-decoration:none;color:var(--ink)}
+.toc-list a:hover{background:var(--accent-soft)}
+.toc-list .n{font-family:var(--mono);font-size:13px;color:var(--accent)}
+.toc-list b{font-family:var(--display);font-size:16px;font-weight:600}
+.toc-list .m{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.toc-list .ok .n{color:var(--up)}
+
+/* Lesson */
+.lesson-head{display:grid;gap:10px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.lesson-head h1{font-size:clamp(30px,3.6vw,46px);font-weight:700;letter-spacing:-.015em;max-width:24ch}
+.lesson-grid{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:56px;align-items:start}
+.lesson-grid > *{min-width:0}
+.rail{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 80px);display:grid;gap:18px;max-height:calc(100vh - 110px);overflow:auto}
+.rail h4{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px;border-left:1px solid var(--line)}
+.rail button{all:unset;cursor:pointer;display:block;padding:5px 0 5px 12px;margin-left:-1px;border-left:2px solid transparent;font-family:var(--display);font-size:14px;line-height:1.3;color:var(--muted)}
+.rail button:hover{color:var(--ink)}
+.rail button.on{color:var(--ink);border-left-color:var(--accent)}
+.rail button:focus-visible{outline:2px solid var(--accent)}
+.lesson-foot{display:grid;gap:18px;padding-top:24px;border-top:1px solid var(--line);margin-top:8px}
+.readrow{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.pager{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.pager a{display:grid;gap:2px;text-decoration:none;color:var(--ink);padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.pager a:hover{border-color:var(--accent)}
+.pager a b{font-family:var(--display);font-size:16px}
+.pager .next{text-align:right;grid-column:2}
+
+/* Prose */
+.prose{max-width:76ch;font-size:18px;line-height:1.7}
+.prose > * + *{margin-top:1em}
+.prose h2{font-size:clamp(24px,2.4vw,30px);margin-top:2.1em;scroll-margin-top:90px;letter-spacing:-.01em}
+.prose h3{font-size:21px;margin-top:1.7em;scroll-margin-top:90px}
+.prose h2 + *,.prose h3 + *{margin-top:.6em}
+.prose > h2:first-child{margin-top:0}
+.prose ul,.prose ol{padding-left:1.3em}
+.prose li + li{margin-top:.35em}
+.prose strong{font-weight:600}
+.prose code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.prose pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:14px;line-height:1.55}
+.prose pre code{background:none;padding:0;font-size:inherit}
+.prose blockquote{margin-left:0;padding-left:16px;border-left:3px solid var(--line);color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.tbl table{min-width:520px}
+table{border-collapse:collapse;width:100%;font-size:15px;line-height:1.45}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
+td{font-variant-numeric:tabular-nums}
+.callout{border-radius:10px;padding:16px 18px;border:1px solid var(--line);background:var(--panel);font-size:17px}
+.callout > * + *{margin-top:.7em}
+.callout-t{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:500}
+.callout.clave{background:var(--accent-soft);border-color:transparent}
+.callout.clave .callout-t{color:var(--accent)}
+.callout.ejemplo{border-left:3px solid var(--up)}
+.callout.ejemplo .callout-t{color:var(--up)}
+.callout.alerta{background:var(--warn-soft);border-color:transparent;border-left:3px solid var(--warn)}
+.callout.alerta .callout-t{color:var(--warn)}
+.callout.ejercicio{border:1.5px dashed var(--accent)}
+.callout.ejercicio .callout-t{color:var(--accent)}
+.solve summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:15px;color:var(--accent);list-style:none;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--accent);border-radius:6px}
+.solve summary::-webkit-details-marker{display:none}
+.solve summary::before{content:"▸"}
+.solve[open] summary::before{content:"▾"}
+.solve[open] summary{margin-bottom:12px}
+.solve > :not(summary) + *{margin-top:.7em}
+.formula{font-family:var(--mono);font-size:16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;overflow-x:auto;line-height:1.7}
+.formula p + p{margin-top:.3em}
+.prose .sources{list-style:none;padding:0;display:grid;gap:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;font-size:16px}
+.prose .sources li{padding:12px 16px;margin:0}
+.prose .sources li + li{border-top:1px solid var(--line)}
+.prose .sources a{font-family:var(--display);font-weight:600}
+figure{margin:0}
+figure.fig{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto}
+figure.fig figcaption{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:8px}
+.fig svg{display:block;width:100%;height:auto;max-width:100%}
+.fig.wide svg{min-width:860px}
+.fig text{fill:var(--ink);font-family:var(--display);font-size:13px}
+.fig .sub{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.fig .box{fill:var(--panel);stroke:var(--ink);stroke-width:1.2}
+.fig .box.alt{fill:var(--accent-soft);stroke:var(--accent)}
+.fig .ln{stroke:var(--muted);stroke-width:1.4;fill:none}
+.fig .grid{stroke:var(--line);stroke-width:1}
+.fig .acc{stroke:var(--accent);stroke-width:2.2;fill:none}
+.fig .upc{fill:var(--up);stroke:var(--up)}
+.fig .dnc{fill:var(--down);stroke:var(--down)}
+.fig .upl{stroke:var(--up);stroke-width:2.2;fill:none}
+.fig .dnl{stroke:var(--down);stroke-width:2.2;fill:none}
+.fig .head{fill:var(--muted)}
+.fig .dash{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4;fill:none}
+.book{font-family:var(--mono);font-size:13px;width:100%;max-width:420px}
+.book td{padding:4px 8px;border:0;position:relative}
+.book .ask td:first-child{color:var(--down)} .book .bid td:first-child{color:var(--up)}
+.book .depth{position:absolute;right:0;top:3px;bottom:3px;opacity:.18;border-radius:2px}
+.book .ask .depth{background:var(--down)} .book .bid .depth{background:var(--up)}
+.book .spread td{color:var(--muted);text-align:center;border-block:1px dashed var(--line);font-size:12px}
+
+/* Practice */
+.score{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.score b{font-family:var(--display);font-size:26px}
+.qs{display:grid;gap:18px;max-width:900px}
+.q{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:18px 20px;display:grid;gap:12px}
+.q.right{border-color:var(--up)}
+.q.wrong{border-color:var(--down)}
+.q-n{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.q-t{font-size:18px}
+.q-t p + p{margin-top:.5em}
+.opts{display:grid;gap:8px}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:16px}
+.opt:hover{background:var(--accent-soft)}
+.opt input{margin:4px 0 0;accent-color:var(--accent)}
+.opt.is-right{border-color:var(--up);background:var(--up-soft)}
+.opt.is-wrong{border-color:var(--down);background:var(--down-soft)}
+.numrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.numrow input{font-family:var(--mono);font-size:17px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:200px;max-width:100%}
+.q-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fb{border-radius:8px;padding:12px 14px;font-size:16px}
+.fb > * + *{margin-top:.5em}
+.fb.ok{background:var(--up-soft)}
+.fb.no{background:var(--down-soft)}
+.fb b.r{font-family:var(--display)}
+
+/* Tools */
+.intro{max-width:72ch}
+.tool{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+.tool > *{min-width:0}
+.tool h3{font-size:20px;grid-column:1/-1}
+.fields{display:grid;gap:12px}
+.fields label{display:grid;gap:4px;font-family:var(--display);font-size:14px}
+.fields input{font-family:var(--mono);font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink);width:100%}
+.out{display:grid;gap:10px;align-content:start}
+.out div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.out b{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums;text-align:right}
+.out .big b{font-size:26px;color:var(--accent)}
+.out .pos b{color:var(--up)} .out .neg b{color:var(--down)}
+.note{font-size:14px;color:var(--muted);grid-column:1/-1}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.dd td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.bad{color:var(--down)}
+.books{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 28px}
+.books div{padding:12px 0;border-bottom:1px solid var(--line)}
+.books b{font-family:var(--display);display:block}
+.books span{font-size:14px;color:var(--muted)}
+#q{font-family:var(--mono);font-size:15px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:100%;max-width:360px;margin-top:6px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 28px;margin:0}
+.gloss div{padding:10px 0;border-bottom:1px solid var(--line)}
+.gloss dt{font-family:var(--display);font-weight:600}
+.gloss dd{margin:0;font-size:15px;color:var(--muted)}
+.foot{font-size:14px;color:var(--muted);display:grid;gap:8px;padding-top:20px;border-top:1px solid var(--line);margin-top:48px;max-width:90ch}
+
+@media (max-width:1200px){
+  .lesson-grid{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .mod-body{grid-template-columns:minmax(0,1fr);gap:28px}
+}
+@media (max-width:1024px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;left:0;top:0;bottom:0;height:auto;width:min(330px,88vw);z-index:50;transform:translateX(-102%);transition:transform .22s ease;box-shadow:0 0 40px rgba(0,0,0,.2)}
+  .side.open{transform:none}
+  .topbar .menu-btn{display:inline-flex}
+  .welcome{grid-template-columns:minmax(0,1fr);gap:24px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats div:nth-child(2){border-right:0}
+  .stats div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+}
+@media (max-width:720px){
+  body{font-size:16px}
+  .prose{font-size:17px}
+  .tool{grid-template-columns:minmax(0,1fr);padding:16px}
+  .crumbs .grp,.crumbs .sep{display:none}
+  .mini .track{width:60px}
+  .pager{grid-template-columns:minmax(0,1fr)}
+  .pager .next{grid-column:1}
+  .content{padding-top:22px}
+  .stats b{font-size:22px}
+  .out .big b{font-size:22px}
+  .q{padding:16px}
+}
+@media (max-width:420px){ .mini .label{display:none} }
+</style>
+
+<div class="app">
+  <aside class="side" id="side" aria-label="Navegación del curso">
+    <a class="brand" href="#inicio">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="1" width="28" height="28" rx="7" fill="var(--accent)"/><path d="M9 8v14M15 6v18M21 10v10" stroke="var(--accent-ink)" stroke-width="1.6"/><rect x="7" y="11" width="4" height="7" fill="var(--accent-ink)"/><rect x="13" y="9" width="4" height="9" fill="var(--accent-ink)"/><rect x="19" y="12" width="4" height="6" fill="var(--accent-ink)"/></svg>
+      <div><b>Ruta Trader</b><span>Curso de trading</span></div>
+    </a>
+    <div class="overall">
+      <div class="overall-top"><b class="num" id="ov-pct">0%</b><span class="label" id="ov-txt"></span></div>
+      <div class="track"><i id="ov-bar"></i></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <span class="save" id="save" role="status">Tu avance se guarda automáticamente</span>
+      <button class="btn small" id="reset" type="button">Reiniciar progreso</button>
+      <div id="confirm" hidden><span class="label">¿Borrar todo tu avance?</span><div style="display:flex;gap:6px;margin-top:6px"><button class="btn small danger" id="reset-yes" type="button">Sí, borrar</button><button class="btn small" id="reset-no" type="button">Cancelar</button></div></div>
+    </div>
+  </aside>
+  <div class="shade" id="shade" hidden></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn small menu-btn" id="menu" type="button" aria-controls="side" aria-expanded="false">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6"/></svg>Curso</button>
+      <div class="crumbs" id="crumbs"></div>
+      <div class="top-right"><div class="mini"><span class="label" id="mini-txt"></span><div class="track"><i id="mini-bar"></i></div></div></div>
+    </header>
+    <main class="content">
+      <div id="view"></div>
+      <footer class="foot">
+        <p>Ruta Trader es material educativo. No es asesoría financiera, tributaria ni legal. Operar en los mercados implica riesgo de perder todo el capital, y más con apalancamiento. Verifica siempre que tu broker esté regulado y consulta a un contador sobre tu situación tributaria.</p>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<template id="tpl-calc">
+<form class="tool" id="ps" onsubmit="return false">
+          <h3>Tamaño de posición</h3>
+          <div class="fields">
+            <label for="ps-cap">Capital de la cuenta (USD)<input id="ps-cap" type="number" inputmode="decimal" value="2000" min="0" step="any"></label>
+            <label for="ps-risk">Riesgo por operación (%)<input id="ps-risk" type="number" inputmode="decimal" value="1" min="0" step="0.1"></label>
+            <label for="ps-entry">Precio de entrada<input id="ps-entry" type="number" inputmode="decimal" value="100" step="any"></label>
+            <label for="ps-stop">Precio del stop-loss<input id="ps-stop" type="number" inputmode="decimal" value="97" step="any"></label>
+            <label for="ps-tp">Precio objetivo (take profit)<input id="ps-tp" type="number" inputmode="decimal" value="106" step="any"></label>
+          </div>
+          <div class="out" aria-live="polite">
+            <div><span>Dinero en riesgo</span><b id="o-risk">—</b></div>
+            <div><span>Riesgo por unidad</span><b id="o-unit">—</b></div>
+            <div class="big"><span>Unidades a comprar</span><b id="o-qty">—</b></div>
+            <div><span>Valor de la posición</span><b id="o-val">—</b></div>
+            <div><span>% de la cuenta expuesto</span><b id="o-exp">—</b></div>
+            <div><span>Relación riesgo / beneficio</span><b id="o-rr">—</b></div>
+          </div>
+          <p class="note">Fórmula: unidades = (capital × riesgo%) ÷ |entrada − stop|. Si el valor de la posición supera tu capital, necesitarías apalancamiento: reduce el tamaño o aleja la entrada del stop.</p>
+        </form>
+
+        <form class="tool" id="ex" onsubmit="return false">
+          <h3>Expectativa de un sistema</h3>
+          <div class="fields">
+            <label for="ex-wr">Tasa de acierto (%)<input id="ex-wr" type="number" inputmode="decimal" value="40" min="0" max="100" step="1"></label>
+            <label for="ex-win">Ganancia promedio (en R)<input id="ex-win" type="number" inputmode="decimal" value="2" min="0" step="0.1"></label>
+            <label for="ex-loss">Pérdida promedio (en R)<input id="ex-loss" type="number" inputmode="decimal" value="1" min="0" step="0.1"></label>
+            <label for="ex-n">Operaciones por mes<input id="ex-n" type="number" inputmode="numeric" value="20" min="0" step="1"></label>
+          </div>
+          <div class="out" aria-live="polite">
+            <div class="big" id="ex-ebox"><span>Expectativa por operación</span><b id="ex-e">—</b></div>
+            <div><span>Profit factor</span><b id="ex-pf">—</b></div>
+            <div><span>Resultado esperado al mes</span><b id="ex-m">—</b></div>
+            <div><span>Acierto mínimo para no perder</span><b id="ex-be">—</b></div>
+          </div>
+          <p class="note">R es lo que arriesgas en una operación. Expectativa = acierto × ganancia − (1 − acierto) × pérdida. Antes de restar costos. Un sistema puede ganar con 35% de acierto si sus ganancias son grandes, y perder con 70% si sus pérdidas lo son.</p>
+        </form>
+
+        <h3 style="font-size:22px">La matemática del drawdown</h3>
+        <p class="intro">Cuánto cae la cuenta tras una racha de pérdidas seguidas según el riesgo por operación, y cuánto necesitas ganar para volver al inicio.</p>
+        <div class="scroll"><table class="dd" id="dd"></table></div>
+      
+</template>
+
+<script type="application/json" id="rt-data">{{DATA}}</script>
+
+<script>
+(function(){
+const D = JSON.parse(document.getElementById("rt-data").textContent);
+const MODS = D.modules;
+const LESSONS = [];
+MODS.forEach((m, mi) => m.lessons.forEach((l, li) => LESSONS.push(Object.assign(l, {mod: m, mi, li}))));
+const GROUPS = [
+ {id:"fundamentos", name:"Fundamentos", desc:"Qué es un mercado, cómo funciona por dentro y qué se opera"},
+ {id:"metodo", name:"Análisis y método", desc:"Leer el mercado, controlar el riesgo y probar ideas"},
+ {id:"practica", name:"Práctica y profesionalización", desc:"Operar con datos, dentro de la ley y con automatización"}
+];
+const TOOLS = [
+ {id:"calculadoras", name:"Calculadoras de riesgo", d:"Tamaño de posición, expectativa de un sistema y matemática del drawdown.", ico:"M5 3h14v18H5zM8 7h8M8 12h2M12 12h2M8 16h2M12 16h2"},
+ {id:"glosario", name:"Glosario", d:"Los términos del curso con buscador.", ico:"M4 5h16M4 10h16M4 15h10M4 20h6"},
+ {id:"biblioteca", name:"Biblioteca", d:"Los libros que respaldan el curso, en orden de lectura.", ico:"M4 4h5v16H4zM10 4h4v16h-4zM15 5l4-1 2 15-4 1z"}
+];
+const BOOKS = [
+ ["Un paseo aleatorio por Wall Street","Burton Malkiel · contexto y evidencia"],
+ ["Trading and Exchanges","Larry Harris · microestructura"],
+ ["Análisis técnico de los mercados financieros","John Murphy · técnico"],
+ ["Japanese Candlestick Charting Techniques","Steve Nison · velas"],
+ ["Options, Futures, and Other Derivatives","John Hull · derivados"],
+ ["El inversor inteligente","Benjamin Graham · fundamental"],
+ ["Trade Your Way to Financial Freedom","Van K. Tharp · riesgo y sistemas"],
+ ["Trading en la zona","Mark Douglas · psicología"],
+ ["Pensar rápido, pensar despacio","Daniel Kahneman · sesgos"],
+ ["Market Wizards","Jack Schwager · entrevistas"],
+ ["Memorias de un especulador de bolsa","Edwin Lefèvre · clásico"],
+ ["Evidence-Based Technical Analysis","David Aronson · método científico"],
+ ["Quantitative Trading","Ernest Chan · estrategias"],
+ ["Option Volatility and Pricing","Sheldon Natenberg · opciones"],
+ ["Advances in Financial Machine Learning","Marcos López de Prado · cuantitativo"],
+ ["Flash Boys","Michael Lewis · alta frecuencia"]
+];
+
+const GLOSS = [
+ ["Ask","Precio más bajo al que alguien está dispuesto a vender."],
+ ["ATR","Average True Range: rango promedio de movimiento por vela; mide volatilidad y sirve para ubicar stops."],
+ ["Backtest","Simulación de una estrategia sobre datos históricos."],
+ ["Backwardation","Situación en la que los futuros más lejanos cotizan por debajo del precio actual del activo."],
+ ["Bid","Precio más alto al que alguien está dispuesto a comprar."],
+ ["Broker","Intermediario que recibe tus órdenes, las ejecuta y custodia tus activos."],
+ ["Cámara de compensación","Entidad que se interpone entre comprador y vendedor y garantiza que ambos cumplan."],
+ ["CFD","Contrato por diferencia: apuestas al cambio de precio sin ser dueño del activo."],
+ ["Contango","Situación en la que los futuros más lejanos cotizan por encima del precio actual; quien mantiene posiciones compradas pierde algo en cada roll."],
+ ["Curva de rendimientos","Las tasas de los bonos del gobierno a distintos plazos; invertida cuando los cortos pagan más que los largos."],
+ ["Drawdown","Caída desde el máximo de la cuenta hasta el mínimo posterior."],
+ ["EBITDA","Utilidad operativa más depreciación y amortización; aproxima el efectivo que genera la operación."],
+ ["ECN","Red electrónica que cruza órdenes de compradores y vendedores directamente."],
+ ["Error estándar","Precisión de un promedio medido: desviación estándar dividida por la raíz del número de observaciones."],
+ ["ETF","Fondo que cotiza en bolsa como una acción y replica un índice o canasta."],
+ ["Expectativa matemática","Promedio de ganancia o pérdida por operación: acierto × ganancia promedio − fallo × pérdida promedio."],
+ ["Expectativa","Ganancia promedio esperada por operación, medida en dinero o en R."],
+ ["Futuro","Contrato para comprar o vender un activo a un precio fijado en una fecha futura."],
+ ["Gap","Salto de precio entre el cierre de una vela y la apertura de la siguiente."],
+ ["Griegas","Medidas de sensibilidad de una opción: delta, gamma, theta, vega."],
+ ["Kelly","Fórmula que maximiza el crecimiento a largo plazo: p − (1 − p) ÷ b. En la práctica se usa una fracción pequeña."],
+ ["Liquidez","Facilidad para comprar o vender sin mover mucho el precio."],
+ ["Llamada de margen","Aviso del broker cuando tu garantía no alcanza; si no depositas, cierra tus posiciones."],
+ ["Look-ahead bias","Sesgo de anticipación: usar en un backtest información que no estaba disponible al tomar la decisión."],
+ ["Lote","Unidad de tamaño en forex: estándar 100.000, mini 10.000, micro 1.000 unidades."],
+ ["Margen","Dinero que el broker retiene como garantía al operar apalancado."],
+ ["Media móvil","Promedio del precio en los últimos N periodos."],
+ ["Opción call","Derecho, no obligación, a comprar un activo a un precio (strike) hasta una fecha."],
+ ["Opción put","Derecho, no obligación, a vender un activo a un precio hasta una fecha."],
+ ["Orden de mercado","Se ejecuta de inmediato al mejor precio disponible."],
+ ["Orden límite","Se ejecuta solo a tu precio o a uno mejor."],
+ ["Orden stop","Se activa cuando el precio toca un nivel; se usa para cortar pérdidas o entrar en rupturas."],
+ ["Overfitting","Ajustar tanto una estrategia al pasado que deja de funcionar en datos nuevos."],
+ ["P/E","Precio de la acción dividido por la utilidad por acción."],
+ ["Perpetuo","Futuro de criptomonedas sin vencimiento que se mantiene cerca del precio al contado con la tasa de financiamiento."],
+ ["PFOF","Pago por flujo de órdenes: un creador de mercado le paga al broker por ejecutar tus órdenes."],
+ ["Pip","Movimiento mínimo convencional en forex; en EUR/USD es 0,0001."],
+ ["Profit factor","Ganancias brutas divididas entre pérdidas brutas."],
+ ["R","La cantidad que arriesgas en una operación; las ganancias y pérdidas se expresan en múltiplos de R."],
+ ["RSI","Índice de fuerza relativa: oscilador de 0 a 100 que compara subidas y bajadas recientes."],
+ ["Sesgo de supervivencia","Error de usar solo los activos que sobrevivieron hasta hoy, excluyendo los que desaparecieron."],
+ ["Sharpe","Rentabilidad extra por unidad de volatilidad."],
+ ["Slippage","Diferencia entre el precio esperado y el precio real de ejecución."],
+ ["Spread","Diferencia entre el mejor ask y el mejor bid."],
+ ["Stop-loss","Orden que cierra la operación si el precio llega a tu nivel de pérdida máxima."],
+ ["Straddle","Compra de una call y una put con el mismo strike y vencimiento; su precio indica el movimiento esperado."],
+ ["Swap","Costo o abono por mantener una posición apalancada de un día a otro."],
+ ["T+1","La liquidación ocurre un día hábil después de la operación."],
+ ["Tasa de financiamiento","Pago periódico entre comprados y vendidos en un perpetuo para acercar su precio al contado."],
+ ["Valor de empresa (EV)","Capitalización más deuda neta: lo que costaría comprar toda la empresa."],
+ ["Volatilidad implícita","Volatilidad futura que el mercado descuenta en el precio de las opciones."],
+ ["VWAP","Precio promedio ponderado por volumen desde el inicio de la sesión."],
+ ["Walk-forward","Validación que optimiza con un periodo y prueba en el siguiente, avanzando en el tiempo."]
+];
+const CALC_IDS = ["ps-cap","ps-risk","ps-entry","ps-stop","ps-tp","ex-wr","ex-win","ex-loss","ex-n"];
+const PASS = 0.7;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const two = i => String(i).padStart(2,"0");
+const strip = h => h.replace(/^<p>|<\/p>$/g, "");
+const svgIco = d => `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="${d}"/></svg>`;
+const groupOf = m => GROUPS.find(g => g.id === m.group);
+const modById = id => MODS.find(m => m.id === id);
+const lessonById = id => LESSONS.find(l => l.id === id);
+const totalLessons = LESSONS.length;
+const totalMin = LESSONS.reduce((a,l) => a + l.min, 0);
+
+// ---- saved state: browser storage at once, plus the viewer's private db document when available ----
+const KEY = "rutaTrader.state.v3";
+const blank = () => ({read:[], quiz:{}, calc:{}, last:"", updatedAt:0});
+let S = blank();
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(blank(), JSON.parse(raw)); } catch(e) {}
+const isRead = id => S.read.includes(id);
+function writeLocal(){ try { localStorage.setItem(KEY, JSON.stringify(S)); return true; } catch(e) { return false; } }
+function status(t){ $("save").textContent = t; }
+let dbRef = null, timer = null, writing = false, again = false;
+function commit(){
+  S.updatedAt = Date.now();
+  const ok = writeLocal();
+  clearTimeout(timer);
+  if (dbRef) { status("Guardando…"); timer = setTimeout(flush, 800); }
+  else status(ok ? "Guardado en este navegador" : "No se pudo guardar en este navegador");
+}
+async function flush(){
+  if (!dbRef) return;
+  if (writing) { again = true; return; }
+  writing = true;
+  try {
+    await dbRef.set(JSON.parse(JSON.stringify(S)));
+    status("Guardado en tu cuenta · " + new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}));
+  } catch(e) {
+    if (e && e.code === "unavailable") again = true;
+    else { dbRef = null; status("Guardado en este navegador"); }
+  }
+  writing = false;
+  if (again) { again = false; setTimeout(flush, 1500); }
+}
+async function connect(){
+  if (!window.claude || typeof window.claude.use !== "function") return;
+  try {
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (!db || !user) return;
+    const id = await user.id();
+    if (!id) return;
+    const ref = db.doc("data/users/" + id + "/course");
+    const snap = await ref.get();
+    dbRef = ref;
+    const remote = snap.exists ? Object.assign(blank(), snap.data()) : null;
+    if (remote && (remote.updatedAt || 0) > (S.updatedAt || 0)) {
+      S = remote; writeLocal(); render(); status("Avance recuperado de tu cuenta");
+    } else if (S.updatedAt) flush();
+    else status("Tu avance se guardará en tu cuenta");
+  } catch(e) { /* stays on browser storage */ }
+}
+
+// ---- progress ----
+const readIn = m => m.lessons.filter(l => isRead(l.id)).length;
+function quizStats(m){
+  let answered = 0, right = 0;
+  m.quiz.forEach(q => { const a = S.quiz[q.id]; if (a) { answered++; if (a.ok) right++; } });
+  return {answered, right, total: m.quiz.length, pct: m.quiz.length ? right / m.quiz.length : 1};
+}
+const quizPassed = m => quizStats(m).pct >= PASS;
+const modDone = m => readIn(m) === m.lessons.length && quizPassed(m);
+function modState(m){ if (modDone(m)) return "ok"; if (readIn(m) || quizStats(m).answered) return "go"; return ""; }
+const stateLabel = {ok:"Completado", go:"En curso", "":"Sin iniciar"};
+function modPct(m){ const parts = m.lessons.length + 1; return Math.round((readIn(m) + (quizPassed(m) ? 1 : quizStats(m).pct)) / parts * 100); }
+function nextStep(){
+  const l = LESSONS.find(x => !isRead(x.id));
+  const m = MODS.find(x => readIn(x) === x.lessons.length && !quizPassed(x));
+  if (m && (!l || MODS.indexOf(m) <= l.mi)) return {href:"#" + m.id + "-practica", label:"Continuar: práctica del módulo " + two(MODS.indexOf(m))};
+  if (l) return {href:"#" + l.id, label: (S.read.length ? "Continuar: " : "Empezar: ") + l.title};
+  return {href:"#calculadoras", label:"Curso completado · ir a herramientas"};
+}
+
+// ---- routing ----
+let cur = {type:"inicio"};
+function parse(h){
+  if (!h || h === "inicio") return {type:"inicio"};
+  if (TOOLS.some(t => t.id === h)) return {type:"tool", id:h};
+  const mp = h.match(/^(m\d\d)-practica$/); if (mp && modById(mp[1])) return {type:"practica", m:modById(mp[1])};
+  if (modById(h)) return {type:"modulo", m:modById(h)};
+  const l = lessonById(h); if (l) return {type:"leccion", l};
+  return {type:"inicio"};
+}
+function route(){ cur = parse(location.hash.slice(1)); render(); window.scrollTo(0,0); closeMenu(); }
+window.addEventListener("hashchange", route);
+function curMod(){ return cur.m || (cur.l && cur.l.mod) || null; }
+
+function render(){
+  const v = $("view");
+  if (cur.type === "inicio") v.innerHTML = viewHome();
+  else if (cur.type === "modulo") v.innerHTML = viewModule(cur.m);
+  else if (cur.type === "leccion") v.innerHTML = viewLesson(cur.l);
+  else if (cur.type === "practica") v.innerHTML = viewPractice(cur.m);
+  else v.innerHTML = viewTool(cur.id);
+  if (cur.type === "leccion" && S.last !== cur.l.id) { S.last = cur.l.id; writeLocal(); }
+  paintChrome();
+  afterRender();
+}
+
+// ---- chrome: sidebar, crumbs, totals ----
+function paintChrome(){
+  const pct = Math.round(S.read.length / totalLessons * 100);
+  $("ov-pct").textContent = pct + "%";
+  $("ov-txt").textContent = S.read.length + " de " + totalLessons + " lecciones";
+  $("ov-bar").style.width = pct + "%"; $("mini-bar").style.width = pct + "%";
+  $("mini-txt").textContent = pct + "%";
+  const cm = curMod();
+  const curId = cur.type === "leccion" ? cur.l.id : cur.type === "practica" ? cur.m.id + "-practica" : cur.type === "modulo" ? cur.m.id : cur.type === "tool" ? cur.id : "inicio";
+  const ac = id => curId === id ? ' aria-current="page"' : "";
+  $("nav").innerHTML =
+    `<ol><li><a href="#inicio"${ac("inicio")}><span class="ico">${svgIco("M3 11l9-7 9 7v9h-6v-6H9v6H3z")}</span><span>Inicio</span><span></span></a></li></ol>` +
+    GROUPS.map(g => `<div><h4>${esc(g.name)}</h4><ol>${MODS.filter(m => m.group === g.id).map(m => { const st = modState(m), i = MODS.indexOf(m), open = cm === m;
+      return `<li><a href="#${m.id}"${ac(m.id)} class="${open && curId !== m.id ? "cur" : ""}"><span class="st ${st}">${st === "ok" ? "✓" : two(i)}</span><span>${esc(m.short)}</span><span class="h">${m.lessons.length} lecc.</span></a>` +
+        (open ? `<ol class="sub">${m.lessons.map((l, j) => `<li><a href="#${l.id}"${ac(l.id)}><span class="dotst ${isRead(l.id) ? "ok" : ""}"></span><span>${i}.${j+1} ${esc(l.title)}</span></a></li>`).join("")}
+          <li><a href="#${m.id}-practica"${ac(m.id + "-practica")}><span class="dotst ${quizPassed(m) ? "ok" : ""}"></span><span>Práctica</span></a></li></ol>` : "") + `</li>`; }).join("")}</ol></div>`).join("") +
+    `<div><h4>Herramientas</h4><ol>${TOOLS.map(t => `<li><a href="#${t.id}"${ac(t.id)}><span class="ico">${svgIco(t.ico)}</span><span>${esc(t.name)}</span><span></span></a></li>`).join("")}</ol></div>`;
+  const home = `<a href="#inicio" class="grp">Ruta Trader</a><span class="sep">/</span>`;
+  let c = `<b>Inicio</b>`;
+  if (cur.type === "modulo") c = home + `<b>Módulo ${two(MODS.indexOf(cur.m))} · ${esc(cur.m.short)}</b>`;
+  if (cur.type === "leccion") c = home + `<a href="#${cur.l.mod.id}" class="grp">Módulo ${two(cur.l.mi)} · ${esc(cur.l.mod.short)}</a><span class="sep">/</span><b>Lección ${cur.l.mi}.${cur.l.li+1}</b>`;
+  if (cur.type === "practica") c = home + `<a href="#${cur.m.id}" class="grp">Módulo ${two(MODS.indexOf(cur.m))} · ${esc(cur.m.short)}</a><span class="sep">/</span><b>Práctica</b>`;
+  if (cur.type === "tool") c = home + `<b>${esc(TOOLS.find(t => t.id === cur.id).name)}</b>`;
+  $("crumbs").innerHTML = c;
+}
+
+// ---- views ----
+function viewHome(){
+  const ns = nextStep(), doneMods = MODS.filter(modDone).length;
+  const qAns = MODS.reduce((a,m) => a + quizStats(m).right, 0), qTot = MODS.reduce((a,m) => a + m.quiz.length, 0);
+  return `<section class="view" aria-label="Inicio">
+  <div class="welcome">
+    <div>
+      <p class="eyebrow">Curso completo · de cero a operar con método</p>
+      <h1 style="margin-top:10px">Ruta <span>Trader</span></h1>
+      <p class="lede">Aprende trading de principio a fin dentro de esta plataforma: ${MODS.length} módulos y ${totalLessons} lecciones escritas a fondo, con ejemplos numéricos, ejercicios resueltos y prácticas para comprobar lo que entiendes. Cada lección cita las fuentes de donde sale la información para que puedas verificarla o profundizar.</p>
+      <div class="cta"><a class="btn primary" href="${ns.href}">${esc(ns.label)}</a><a class="btn" href="#m02-4">Qué pasa cuando tocas «Comprar»</a></div>
+    </div>
+    <div class="chartbox" aria-hidden="true"><canvas id="candles"></canvas><div class="ticker"><span>RUTA · 1D</span><span id="tk"></span></div></div>
+  </div>
+  <div class="stats">
+    <div><span class="label">Lecciones leídas</span><b>${S.read.length}/${totalLessons}</b></div>
+    <div><span class="label">Módulos completados</span><b>${doneMods}/${MODS.length}</b></div>
+    <div><span class="label">Prácticas correctas</span><b>${qAns}/${qTot}</b></div>
+    <div><span class="label">Lectura total</span><b>${Math.round(totalMin/60)} h</b></div>
+  </div>
+  <div class="warnbox"><b>Antes de empezar</b><p>La mayoría de quienes hacen trading de corto plazo pierden dinero; el Módulo 00 muestra los datos. Este curso no promete ganancias: te enseña a entender el mercado, medir si tienes ventaja y proteger tu capital. Practica primero en cuenta demo y usa solo dinero que puedas perder.</p></div>
+  ${GROUPS.map(g => `<div><div class="group-head"><h2>${esc(g.name)}</h2><span class="label">${esc(g.desc)}</span></div>
+    <div class="cards">${MODS.filter(m => m.group === g.id).map(m => { const st = modState(m), i = MODS.indexOf(m);
+      return `<a class="card" href="#${m.id}"><div class="card-top"><span class="no">Módulo ${two(i)}</span><span class="pill ${st}">${stateLabel[st]}</span></div>
+        <h3>${esc(m.title)}</h3><div class="track"><i style="width:${modPct(m)}%"></i></div>
+        <div class="card-foot"><span>${m.lessons.length} lecciones · ${m.quiz.length} preguntas</span><span>${readIn(m)}/${m.lessons.length} leídas</span></div></a>`; }).join("")}</div></div>`).join("")}
+  <div><div class="group-head"><h2>Herramientas</h2><span class="label">Para usar durante todo el curso</span></div>
+    <div class="tools">${TOOLS.map(t => `<a class="card" href="#${t.id}"><span class="ico" style="color:var(--accent)">${svgIco(t.ico)}</span><h3>${esc(t.name)}</h3><p>${esc(t.d)}</p></a>`).join("")}</div></div>
+  </section>`;
+}
+
+function viewModule(m){
+  const i = MODS.indexOf(m), g = groupOf(m), qs = quizStats(m), first = m.lessons.find(l => !isRead(l.id));
+  const go = first ? {h:"#" + first.id, t: readIn(m) ? "Continuar con la lección " + i + "." + (first.li+1) : "Empezar el módulo"} : {h:"#" + m.id + "-practica", t: quizPassed(m) ? "Repasar la práctica" : "Ir a la práctica"};
+  const mins = m.lessons.reduce((a,l) => a + l.min, 0);
+  return `<section class="view">
+  <header class="mod-head">
+    <p class="eyebrow">Módulo ${two(i)} · ${esc(g.name)}</p>
+    <h1>${esc(m.title)}</h1>
+    <div class="mod-meta"><span class="chip">${m.lessons.length} lecciones</span><span class="chip">≈${mins} min de lectura</span><span class="chip">${m.quiz.length} preguntas de práctica</span><span class="chip">${esc(m.level)}</span>${modDone(m) ? '<span class="chip ok">✓ Completado</span>' : ""}</div>
+    <div class="mod-prog"><div class="track"><i style="width:${modPct(m)}%"></i></div><span class="label">${readIn(m)}/${m.lessons.length} lecciones · práctica ${qs.right}/${qs.total}</span><a class="btn primary" href="${go.h}">${go.t}</a></div>
+  </header>
+  <div class="mod-body">
+    <div class="prose">${m.intro}</div>
+    <div><p class="label" style="margin-bottom:10px">Contenido del módulo</p>
+    <ol class="toc-list">${m.lessons.map((l,j) => `<li class="${isRead(l.id) ? "ok" : ""}"><a href="#${l.id}"><span class="n">${isRead(l.id) ? "✓" : i + "." + (j+1)}</span><b>${esc(l.title)}</b><span class="m">${l.min} min</span></a></li>`).join("")}
+      <li class="${quizPassed(m) ? "ok" : ""}"><a href="#${m.id}-practica"><span class="n">${quizPassed(m) ? "✓" : "P"}</span><b>Práctica del módulo</b><span class="m">${qs.right}/${qs.total}</span></a></li></ol></div>
+  </div></section>`;
+}
+
+function viewLesson(l){
+  const m = l.mod, prev = LESSONS[LESSONS.indexOf(l) - 1], nextL = m.lessons[l.li + 1];
+  const next = nextL ? {h:"#" + nextL.id, k:"Siguiente lección", t:nextL.title} : {h:"#" + m.id + "-practica", k:"Siguiente", t:"Práctica del módulo " + two(l.mi)};
+  const pv = prev ? {h:"#" + prev.id, t:prev.title} : {h:"#" + m.id, t:"Presentación del módulo"};
+  const read = isRead(l.id);
+  return `<article class="view">
+  <header class="lesson-head">
+    <p class="eyebrow">Módulo ${two(l.mi)} · Lección ${l.li+1} de ${m.lessons.length}</p>
+    <h1>${esc(l.title)}</h1>
+    <div class="mod-meta"><span class="chip">≈${l.min} min de lectura</span>${read ? '<span class="chip ok">✓ Leída</span>' : ""}<a class="chip" href="#${m.id}" style="text-decoration:none">${esc(m.title)}</a></div>
+  </header>
+  <div class="lesson-grid">
+    <div>
+      <div class="prose" id="prose">${l.html}</div>
+      <div class="lesson-foot">
+        <div class="readrow">${read ? `<button class="btn done" type="button" data-read="${l.id}">✓ Lección leída</button><a class="btn primary" href="${next.h}">${esc(next.k)} →</a>` : `<button class="btn primary" type="button" data-read="${l.id}" data-go="${next.h}">Marcar como leída y seguir →</button>`}</div>
+        <nav class="pager" aria-label="Lecciones"><a class="prev" href="${pv.h}"><span class="label">← Anterior</span><b>${esc(pv.t)}</b></a><a class="next" href="${next.h}"><span class="label">${esc(next.k)} →</span><b>${esc(next.t)}</b></a></nav>
+      </div>
+    </div>
+    <aside class="rail" aria-label="En esta lección">
+      <div><h4>En esta lección</h4><ol>${l.outline.map(o => `<li><button type="button" data-jump="${o.id}">${esc(o.t)}</button></li>`).join("")}</ol></div>
+      <div><h4>Módulo ${two(l.mi)}</h4><ol>${m.lessons.map((x,j) => `<li><button type="button" data-href="#${x.id}" class="${x === l ? "on" : ""}">${isRead(x.id) ? "✓ " : ""}${l.mi}.${j+1} ${esc(x.title)}</button></li>`).join("")}<li><button type="button" data-href="#${m.id}-practica">${quizPassed(m) ? "✓ " : ""}Práctica</button></li></ol></div>
+    </aside>
+  </div></article>`;
+}
+
+function qHtml(q, n){
+  const a = S.quiz[q.id], done = !!a;
+  const cls = done ? (a.ok ? "right" : "wrong") : "";
+  let body;
+  if (q.type === "mc") {
+    body = `<div class="opts" role="radiogroup">${q.o.map((o,k) => { let c = "";
+      if (done && k === q.a) c = "is-right"; else if (done && k === a.v) c = "is-wrong";
+      return `<label class="opt ${c}"><input type="radio" name="${q.id}" value="${k}"${done && a.v === k ? " checked" : ""}${done ? " disabled" : ""}><span>${strip(o)}</span></label>`; }).join("")}</div>`;
+  } else {
+    body = `<div class="numrow"><input type="text" inputmode="decimal" id="in-${q.id}" value="${done ? esc(a.v) : ""}" placeholder="Tu respuesta"${done ? " disabled" : ""} aria-label="Respuesta">${q.unit ? `<span class="label">${esc(q.unit)}</span>` : ""}</div>`;
+  }
+  const fb = done ? `<div class="fb ${a.ok ? "ok" : "no"}"><b class="r">${a.ok ? "Correcto." : "Incorrecto."}</b>${q.type === "num" && !a.ok ? ` La respuesta es <b>${q.ans.toLocaleString("es-CO")}${q.unit ? " " + esc(q.unit) : ""}</b>.` : ""}${q.e}</div>` : "";
+  return `<div class="q ${cls}" id="q-${q.id}"><span class="q-n">PREGUNTA ${n}${q.type === "num" ? " · CÁLCULO" : ""}</span><div class="q-t">${q.q}</div>${body}
+    ${done ? fb : `<div class="q-actions"><button class="btn primary small" type="button" data-check="${q.id}">Comprobar</button><span class="label" id="msg-${q.id}"></span></div>`}</div>`;
+}
+
+function viewPractice(m){
+  const i = MODS.indexOf(m), qs = quizStats(m), nextM = MODS[i+1], last = m.lessons[m.lessons.length-1];
+  const passed = quizPassed(m);
+  return `<section class="view">
+  <header class="mod-head">
+    <p class="eyebrow">Módulo ${two(i)} · Práctica</p>
+    <h1>Práctica: ${esc(m.title)}</h1>
+    <p class="intro">Responde cada pregunta y compruébala. Cada respuesta trae la explicación. El módulo se completa con todas las lecciones leídas y al menos el ${PASS*100}% de las preguntas correctas.</p>
+  </header>
+  <div class="score"><div><span class="label">Correctas</span><br><b class="num">${qs.right}/${qs.total}</b></div><div><span class="label">Respondidas</span><br><b class="num">${qs.answered}/${qs.total}</b></div>
+    <span class="pill ${passed ? "ok" : qs.answered ? "go" : ""}">${passed ? "Práctica aprobada" : qs.answered === qs.total ? "Repasa y vuelve a intentarlo" : "En progreso"}</span>
+    ${qs.answered ? `<button class="btn small" type="button" data-retry="${m.id}">Reiniciar práctica</button>` : ""}</div>
+  <div class="qs">${m.quiz.map((q,k) => qHtml(q, k+1)).join("")}</div>
+  <nav class="pager" aria-label="Módulos" style="max-width:900px"><a class="prev" href="#${last.id}"><span class="label">← Última lección</span><b>${esc(last.title)}</b></a>
+    ${nextM ? `<a class="next" href="#${nextM.id}"><span class="label">Siguiente módulo →</span><b>${two(i+1)} · ${esc(nextM.title)}</b></a>` : `<a class="next" href="#calculadoras"><span class="label">Herramientas →</span><b>Calculadoras de riesgo</b></a>`}</nav>
+  </section>`;
+}
+
+function viewTool(id){
+  if (id === "calculadoras") return `<section class="view"><header class="mod-head"><p class="eyebrow">Herramienta</p><h1>Calculadoras de riesgo</h1><p class="intro">Las fórmulas del Módulo 06 listas para usar antes de cada operación. Los valores que pongas se guardan.</p></header>${$("tpl-calc").innerHTML}</section>`;
+  if (id === "glosario") return `<section class="view"><header class="mod-head"><p class="eyebrow">Herramienta</p><h1>Glosario</h1></header><div><label for="q" class="label">Buscar término</label><br><input id="q" type="search" placeholder="spread, margen, ATR…" autocomplete="off"></div><dl class="gloss" id="gloss"></dl></section>`;
+  return `<section class="view"><header class="mod-head"><p class="eyebrow">Herramienta</p><h1>Biblioteca</h1><p class="intro">Los libros en los que se apoya el curso, aproximadamente en el orden en que conviene leerlos. Entre paréntesis, el título en español cuando hay edición traducida.</p></header><div class="books">${BOOKS.map(b => `<div><b>${esc(b[0])}</b><span>${esc(b[1])}</span></div>`).join("")}</div></section>`;
+}
+
+// ---- after render hooks ----
+let spy = null;
+function afterRender(){
+  if (spy) { spy.disconnect(); spy = null; }
+  if (cur.type === "inicio") requestAnimationFrame(drawCandles);
+  if (cur.type === "tool" && cur.id === "calculadoras") initCalc();
+  if (cur.type === "tool" && cur.id === "glosario") { $("q").addEventListener("input", e => glossary(e.target.value)); glossary(""); }
+  if (cur.type === "leccion" && "IntersectionObserver" in window) {
+    const btns = [...document.querySelectorAll(".rail [data-jump]")];
+    spy = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) btns.forEach(b => b.classList.toggle("on", b.dataset.jump === en.target.id)); }), {rootMargin:"-90px 0px -65% 0px"});
+    document.querySelectorAll("#prose h2[id]").forEach(h => spy.observe(h));
+  }
+}
+
+// ---- interactions ----
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-read]");
+  if (r) {
+    const id = r.dataset.read, i = S.read.indexOf(id);
+    if (i >= 0) S.read.splice(i,1); else S.read.push(id);
+    commit();
+    if (r.dataset.go && i < 0) location.hash = r.dataset.go; else render();
+    return;
+  }
+  const j = e.target.closest("[data-jump]");
+  if (j) { const t = $(j.dataset.jump); if (t) t.scrollIntoView({behavior:"smooth", block:"start"}); return; }
+  const hr = e.target.closest("[data-href]");
+  if (hr) { location.hash = hr.dataset.href; return; }
+  const c = e.target.closest("[data-check]");
+  if (c) { check(c.dataset.check); return; }
+  const rt = e.target.closest("[data-retry]");
+  if (rt) { modById(rt.dataset.retry).quiz.forEach(q => delete S.quiz[q.id]); commit(); render(); return; }
+});
+function parseNum(s){
+  s = String(s).trim().replace(/\s|\$|%|USD|COP/gi, "").replace(/−/g, "-");
+  if (!/^-?\d[\d.,]*$/.test(s)) return [];
+  const dec = (x, d) => parseFloat(x.split(d === "." ? "," : ".").join("").replace(d, "."));
+  const hasDot = s.includes("."), hasCom = s.includes(",");
+  if (hasDot && hasCom) return [dec(s, s.lastIndexOf(".") > s.lastIndexOf(",") ? "." : ",")];
+  const sep = hasDot ? "." : hasCom ? "," : "";
+  if (!sep) return [parseFloat(s)];
+  const parts = s.split(sep);
+  if (parts.length > 2) return [parseFloat(parts.join(""))];
+  if (parts[1].length === 3) return [parseFloat(parts.join("")), parseFloat(parts.join("."))];
+  return [parseFloat(parts.join("."))];
+}
+function check(qid){
+  const m = MODS.find(x => x.quiz.some(q => q.id === qid)), q = m.quiz.find(x => x.id === qid);
+  let v, ok;
+  if (q.type === "mc") {
+    const sel = document.querySelector(`input[name="${qid}"]:checked`);
+    if (!sel) { $("msg-" + qid).textContent = "Elige una opción"; return; }
+    v = +sel.value; ok = v === q.a;
+  } else {
+    const raw = $("in-" + qid).value, ns = parseNum(raw);
+    if (!ns.length) { $("msg-" + qid).textContent = "Escribe un número"; return; }
+    v = raw; ok = ns.some(n => Math.abs(n - q.ans) <= Math.max(q.tol, 1e-9));
+  }
+  S.quiz[qid] = {v, ok}; commit();
+  const y = window.scrollY; render(); window.scrollTo(0, y);
+}
+document.addEventListener("input", e => { if (CALC_IDS.includes(e.target.id)) { S.calc[e.target.id] = e.target.value; commit(); } });
+
+function openMenu(){ $("side").classList.add("open"); $("shade").hidden = false; $("menu").setAttribute("aria-expanded","true"); }
+function closeMenu(){ $("side").classList.remove("open"); $("shade").hidden = true; $("menu").setAttribute("aria-expanded","false"); }
+$("menu").addEventListener("click", () => $("side").classList.contains("open") ? closeMenu() : openMenu());
+$("shade").addEventListener("click", closeMenu);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+$("reset").addEventListener("click", () => { $("confirm").hidden = false; $("reset").hidden = true; });
+$("reset-no").addEventListener("click", () => { $("confirm").hidden = true; $("reset").hidden = false; });
+$("reset-yes").addEventListener("click", () => { S = blank(); commit(); $("confirm").hidden = true; $("reset").hidden = false; render(); status("Progreso reiniciado"); });
+
+// ---- glossary ----
+function glossary(q){
+  q = (q||"").trim().toLowerCase();
+  const rows = GLOSS.filter(g => !q || (g[0]+" "+g[1]).toLowerCase().includes(q));
+  $("gloss").innerHTML = rows.length ? rows.map(g => `<div><dt>${esc(g[0])}</dt><dd>${esc(g[1])}</dd></div>`).join("") : `<div><dt>Sin resultados</dt><dd>Prueba con otra palabra, por ejemplo «orden» o «riesgo».</dd></div>`;
+}
+
+// ---- calculators ----
+const nf = (v,d=2) => isFinite(v) ? v.toLocaleString("es-CO",{minimumFractionDigits:d,maximumFractionDigits:d}) : "—";
+function initCalc(){
+  CALC_IDS.forEach(id => { if (S.calc[id] !== undefined && S.calc[id] !== "") $(id).value = S.calc[id]; });
+  ["ps-cap","ps-risk","ps-entry","ps-stop","ps-tp"].forEach(id => $(id).addEventListener("input", pos));
+  ["ex-wr","ex-win","ex-loss","ex-n"].forEach(id => $(id).addEventListener("input", exp));
+  pos(); exp();
+  const risks = [0.5,1,2,5,10], streaks = [3,5,10,15,20];
+  let h = "<thead><tr><th>Pérdidas seguidas</th>" + risks.map(r => `<th>${nf(r, r < 1 ? 1 : 0)}% por operación</th>`).join("") + "</tr></thead><tbody>";
+  streaks.forEach(s => {
+    h += `<tr><td>${s}</td>` + risks.map(r => { const left = Math.pow(1 - r/100, s), dd = (1 - left) * 100, rec = (1/left - 1) * 100;
+      return `<td class="${dd > 30 ? "bad" : ""}">−${nf(dd,1)}% <span style="color:var(--muted)">(+${nf(rec,0)}% para recuperar)</span></td>`; }).join("") + "</tr>";
+  });
+  $("dd").innerHTML = h + "</tbody>";
+}
+function pos(){
+  const cap=+$("ps-cap").value, r=+$("ps-risk").value/100, en=+$("ps-entry").value, st=+$("ps-stop").value, tp=+$("ps-tp").value;
+  const risk = cap*r, unit = Math.abs(en-st), qty = unit>0 ? risk/unit : NaN, val = qty*en, rr = unit>0 ? Math.abs(tp-en)/unit : NaN;
+  $("o-risk").textContent = nf(risk) + " USD";
+  $("o-unit").textContent = unit>0 ? nf(unit) : "stop = entrada";
+  $("o-qty").textContent = nf(qty, qty<10?2:0);
+  $("o-val").textContent = nf(val) + " USD";
+  $("o-exp").textContent = cap>0 ? nf(val/cap*100,1) + " %" : "—";
+  $("o-rr").textContent = isFinite(rr) ? "1 : " + nf(rr,2) : "—";
+}
+function exp(){
+  const w=Math.min(Math.max(+$("ex-wr").value,0),100)/100, aw=+$("ex-win").value, al=+$("ex-loss").value, n=+$("ex-n").value;
+  const e = w*aw - (1-w)*al, pf = (1-w)*al>0 ? (w*aw)/((1-w)*al) : NaN, be = (aw+al)>0 ? al/(aw+al) : NaN;
+  $("ex-e").textContent = (e>=0?"+":"") + nf(e) + " R";
+  $("ex-ebox").className = "big " + (e>=0?"pos":"neg");
+  $("ex-pf").textContent = nf(pf);
+  $("ex-m").textContent = (e*n>=0?"+":"") + nf(e*n,1) + " R";
+  $("ex-be").textContent = isFinite(be) ? nf(be*100,1) + " %" : "—";
+}
+
+// ---- home candlestick chart ----
+const bars = (() => { let seed = 20261027; const R = () => (seed = (seed*1664525 + 1013904223) % 4294967296) / 4294967296;
+  const out = []; let p = 100;
+  for (let i = 0; i < 64; i++) { const drift = i < 22 ? -0.12 : i < 40 ? 0.05 : 0.32, o = p, c = o + (R()-0.5)*2.4 + drift;
+    out.push({o, c, h:Math.max(o,c) + R()*1.3, l:Math.min(o,c) - R()*1.3, v:0.3 + R()}); p = c; }
+  return out; })();
+function drawCandles(){
+  const cv = $("candles"); if (!cv) return;
+  const last = bars[bars.length-1];
+  $("tk").textContent = `O ${last.o.toFixed(2)} · H ${last.h.toFixed(2)} · L ${last.l.toFixed(2)} · C ${last.c.toFixed(2)}`;
+  const ctx = cv.getContext("2d"), css = getComputedStyle(document.documentElement), tok = n => css.getPropertyValue(n).trim();
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if (!W) return;
+  cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  const top = 8, volH = 34, chartH = H - volH - 14, mx = Math.max(...bars.map(b => b.h)), mn = Math.min(...bars.map(b => b.l));
+  const y = v => top + (mx - v)/(mx - mn)*(chartH - top), step = W / bars.length, bw = Math.max(2, step*0.58);
+  ctx.strokeStyle = tok("--line"); ctx.lineWidth = 1;
+  for (let g = 0; g < 4; g++) { const gy = Math.round(top + g*(chartH-top)/3) + .5; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+  ctx.strokeStyle = tok("--accent"); ctx.lineWidth = 1.6; ctx.beginPath();
+  bars.forEach((b,i) => { if (i < 19) return; const m = bars.slice(i-19,i+1).reduce((a,x) => a + x.c, 0)/20, xx = i*step + step/2; i === 19 ? ctx.moveTo(xx,y(m)) : ctx.lineTo(xx,y(m)); });
+  ctx.stroke();
+  bars.forEach((b,i) => { const x = i*step + step/2, col = b.c >= b.o ? tok("--up") : tok("--down");
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(x)+.5, y(b.h)); ctx.lineTo(Math.round(x)+.5, y(b.l)); ctx.stroke();
+    ctx.fillRect(x - bw/2, y(Math.max(b.o,b.c)), bw, Math.max(1, Math.abs(y(b.o)-y(b.c))));
+    ctx.globalAlpha = .35; ctx.fillRect(x - bw/2, H - b.v*volH, bw, b.v*volH); ctx.globalAlpha = 1; });
+  ctx.fillStyle = tok("--muted"); ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "right"; ctx.fillText("MA 20", W - 4, top + 10);
+}
+window.addEventListener("resize", () => { if (cur.type === "inicio") drawCandles(); });
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawCandles); } catch(e) {}
+new MutationObserver(drawCandles).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawCandles);
+
+route();
+if (S.updatedAt) status("Avance recuperado de este navegador");
+connect();
+})();
+</script>
